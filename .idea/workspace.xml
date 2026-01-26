@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ce26f615-a38a-40a3-8327-25570c0457fe" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/LocalDungeonMaster.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/AdventureLogger.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/AdventureLoggerTester.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Client.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/PipaDatasetDownloader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/PromptConstructor.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/AbstractParentLoader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/CharacterLoader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/ConceptLoader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/CreatureLoader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/EventLoader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/FactionLoader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/FaissVectorDB.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/FaissVectorDBTester.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/ItemLoader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/LocationLoader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/RaceLoader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/RunAllLoaders.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/SystemLoader.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SettingRawDataJSON/vanilla_fantasy/PromptCore.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Summarizer.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/SummarizerTester.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="366ooJIhrmJc5ObtAu2IRxuJbgj" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python tests.Python tests in AdventureLoggerTester.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in Client.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in FIASS_Vector_DB.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests in FaissVectorDB.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python.AdventureLogger.executor&quot;: &quot;Run&quot;,
+    &quot;Python.AdventureLoggerTester.executor&quot;: &quot;Run&quot;,
+    &quot;Python.CharacterLoader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Client.executor&quot;: &quot;Run&quot;,
+    &quot;Python.ConceptLoader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.CreatureLoader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.EventLoader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.FactionLoader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.FaissVectorDB.executor&quot;: &quot;Run&quot;,
+    &quot;Python.FaissVectorDBTester.executor&quot;: &quot;Run&quot;,
+    &quot;Python.ItemLoader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.LocationLoader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.PipaDatasetDownloader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.PromptConstructor.executor&quot;: &quot;Run&quot;,
+    &quot;Python.RaceLoader.executor&quot;: &quot;Run&quot;,
+    &quot;Python.RunAllLoaders.executor&quot;: &quot;Run&quot;,
+    &quot;Python.Summarizer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.SummarizerTester.executor&quot;: &quot;Run&quot;,
+    &quot;Python.SystemLoader.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/Work/PROJECTS/DEEPSEEK_Local/pythonProject1/SettingDataLoaders&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
+    &quot;two.files.diff.last.used.file&quot;: &quot;D:/Work/PROJECTS/DEEPSEEK_Local/pythonProject1/SettingDataLoaders/FaissVectorDB.py&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\Work\PROJECTS\DEEPSEEK_Local\pythonProject1\SettingDataLoaders" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\Work\PROJECTS\DEEPSEEK_Local\pythonProject1\SettingRawDataJSON\vanilla_fantasy" />
+      <recent name="D:\Work\PROJECTS\DEEPSEEK_Local\pythonProject1\SettingData" />
+      <recent name="D:\Work\PROJECTS\DEEPSEEK_Local\pythonProject1\WorldDataLoaders" />
+      <recent name="D:\Work\PROJECTS\DEEPSEEK_Local\pythonProject1\Scripts" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-09665e90c3a7-d3b881c8e49f-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-233.15026.15" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ce26f615-a38a-40a3-8327-25570c0457fe" name="Changes" comment="" />
+      <created>1764336555703</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1764336555703</updated>
+    </task>
+    <servers />
+  </component>
+</project>

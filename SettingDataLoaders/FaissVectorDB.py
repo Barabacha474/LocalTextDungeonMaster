@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+import re
 
 
 class FAISSVectorDB:
@@ -242,24 +243,87 @@ class FAISSVectorDB:
             print(f"Error deleting documents: {e}")
             return False
 
-    def search(self, query: str, k: int = 5, threshold: float = 0.3,
-               filter_metadata: Optional[Dict] = None) -> List[Dict]:
+    def _chunk_query(self, query: str, chunk_size: int = 200) -> List[str]:
         """
-        Search for similar documents.
+        Split a long query into smaller chunks for better search coverage.
+
+        Args:
+            query: The original query text
+            chunk_size: Maximum number of words per chunk
+
+        Returns:
+            List of query chunks
+        """
+        if not query or chunk_size <= 0:
+            return [query] if query else []
+
+        # Split query into words
+        words = query.split()
+
+        if len(words) <= chunk_size:
+            return [query]
+
+        # Create chunks
+        chunks = []
+        for i in range(0, len(words), chunk_size):
+            chunk = ' '.join(words[i:i + chunk_size])
+            chunks.append(chunk)
+
+        # Ensure we don't lose context by adding overlapping chunks
+        # This helps capture information that might be split at chunk boundaries
+        if len(chunks) > 1:
+            overlapping_chunks = []
+            for i in range(len(chunks) - 1):
+                # Create overlapping chunks with 25% overlap
+                overlap_size = max(1, chunk_size // 4)
+                if i == 0:
+                    overlapping_chunks.append(chunks[i])
+
+                # Create overlapping chunk between current and next
+                current_words = chunks[i].split()
+                next_words = chunks[i + 1].split()
+
+                # Take last overlap_size words from current and first overlap_size from next
+                overlap = ' '.join(current_words[-overlap_size:] + next_words[:overlap_size])
+                overlapping_chunks.append(overlap)
+
+                if i == len(chunks) - 2:
+                    overlapping_chunks.append(chunks[i + 1])
+
+            chunks = overlapping_chunks
+
+        return chunks
+
+    def search(self, query: str, k: int = 5, threshold: float = 0.3,
+               filter_metadata: Optional[Dict] = None, chunk_size: Optional[int] = None) -> List[Dict]:
+        """
+        Search for similar documents with optional query chunking.
 
         Args:
             query: Query text to search for
             k: Number of results to return
             threshold: Minimum similarity score (0.0-1.0)
             filter_metadata: Optional metadata to filter results by
+            chunk_size: If provided, split long queries into chunks of this size (in words).
+                       If None or 0, use the entire query as is.
 
         Returns:
-            List of result dictionaries
+            List of result dictionaries sorted by similarity (highest first)
         """
         if self.index.ntotal == 0 or len(self.documents) == 0:
             print(f"Warning: Index for '{self.adventure_name}' is empty!")
             return []
 
+        # If chunk_size is specified and query is long enough, split into chunks
+        if chunk_size is not None and chunk_size > 0:
+            return self._search_with_chunks(query, k, threshold, filter_metadata, chunk_size)
+
+        # Original search logic for single query
+        return self._search_single_query(query, k, threshold, filter_metadata)
+
+    def _search_single_query(self, query: str, k: int, threshold: float,
+                             filter_metadata: Optional[Dict] = None) -> List[Dict]:
+        """Search using a single query (original search logic)."""
         # Generate query embedding
         query_embedding = self.embedding_model.encode([query]).astype('float32')
         faiss.normalize_L2(query_embedding)
@@ -269,7 +333,11 @@ class FAISSVectorDB:
 
         # Collect results
         results = []
+        print("MESSAGE FROM VECTOR DB SEARCH (single query)")
+        print(f"threshold: {threshold}\n")
+
         for distance, idx in zip(distances[0], indices[0]):
+            print(f"distance: {distance}\n")
             if idx != -1 and distance >= threshold:
                 # Ensure idx is within current documents list bounds
                 if idx < len(self.documents):
@@ -288,7 +356,55 @@ class FAISSVectorDB:
                         'created_at': doc.get('created_at')
                     })
 
-        return results
+        # Sort by similarity (highest first)
+        results.sort(key=lambda x: x['similarity'], reverse=True)
+        return results[:k]
+
+    def _search_with_chunks(self, query: str, k: int, threshold: float,
+                            filter_metadata: Optional[Dict] = None, chunk_size: int = 200) -> List[Dict]:
+        """
+        Search by splitting query into chunks and combining results.
+
+        Args:
+            query: Original query text
+            k: Number of final results to return
+            threshold: Minimum similarity score
+            filter_metadata: Optional metadata filter
+            chunk_size: Words per chunk
+
+        Returns:
+            List of unique results sorted by similarity
+        """
+        print(f"Searching with query chunking (chunk_size={chunk_size})")
+
+        # Split query into chunks
+        query_chunks = self._chunk_query(query, chunk_size)
+        print(f"Split query into {len(query_chunks)} chunks")
+
+        # Use a set to track unique document IDs
+        seen_ids = set()
+        all_results = []
+
+        # Search for each chunk
+        for i, chunk in enumerate(query_chunks):
+            print(f"Searching chunk {i + 1}/{len(query_chunks)}: '{chunk[:50]}...'")
+
+            # Get results for this chunk (request more than k to get diverse results)
+            chunk_results = self._search_single_query(chunk, k * 2, threshold, filter_metadata)
+
+            # Add unique results
+            for result in chunk_results:
+                if result['id'] not in seen_ids:
+                    seen_ids.add(result['id'])
+                    all_results.append(result)
+
+        # Sort all results by similarity
+        all_results.sort(key=lambda x: x['similarity'], reverse=True)
+
+        # Return top k results
+        final_results = all_results[:k]
+        print(f"Found {len(final_results)} unique results from {len(query_chunks)} query chunks")
+        return final_results
 
     def _matches_filter(self, doc_metadata: Dict, filter_metadata: Dict) -> bool:
         """Check if document metadata matches filter criteria."""

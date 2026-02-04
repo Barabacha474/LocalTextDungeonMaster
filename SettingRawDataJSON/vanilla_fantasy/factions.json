@@ -1,0 +1,15 @@
+{
+  "factions": [
+    {
+      "name": "The Argent Hand",
+      "type": "Religious/Military Order",
+      "headquarters": "The Argent Spire fortress-monastery",
+      "goals": "Eradicate evil, protect the innocent, uphold divine law",
+      "leadership": "Lord Commander Valerius (human paladin)",
+      "membership": "500+ members including paladins, clerics, and lay followers from all races",
+      "ideology": "Lawful Good, follows the God of Justice and Light",
+      "enemies": "Cult of the Sundered Veil, undead, demons",
+      "roleplay_hooks": "A young paladin on their first pilgrimage; an inquisitor investigating a noble suspected of necromancy"
+    }
+  ]
+}

@@ -5,34 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ce26f615-a38a-40a3-8327-25570c0457fe" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/LocalDungeonMaster.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AdventureLogger.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/AdventureLoggerTester.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Client.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/PipaDatasetDownloader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/PromptConstructor.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/AbstractParentLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/CharacterLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/ConceptLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/CreatureLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/EventLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/FactionLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/FaissVectorDB.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/FaissVectorDBTester.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/ItemLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/LocationLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/RaceLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/RunAllLoaders.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingDataLoaders/SystemLoader.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SettingRawDataJSON/vanilla_fantasy/PromptCore.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Summarizer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/SummarizerTester.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AdventureLogger.py" beforeDir="false" afterPath="$PROJECT_DIR$/AdventureLogger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Client.py" beforeDir="false" afterPath="$PROJECT_DIR$/Client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/PromptConstructor.py" beforeDir="false" afterPath="$PROJECT_DIR$/PromptConstructor.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SettingDataLoaders/FaissVectorDB.py" beforeDir="false" afterPath="$PROJECT_DIR$/SettingDataLoaders/FaissVectorDB.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SettingRawDataJSON/vanilla_fantasy/PromptCore.json" beforeDir="false" afterPath="$PROJECT_DIR$/SettingRawDataJSON/vanilla_fantasy/PromptCore.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -123,5 +101,16 @@
       <updated>1764336555703</updated>
     </task>
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>

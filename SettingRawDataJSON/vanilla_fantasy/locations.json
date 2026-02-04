@@ -1,0 +1,14 @@
+{
+  "locations": [
+    {
+      "name": "Elderwood Village",
+      "type": "Rural Settlement",
+      "description": "A peaceful village nestled in a mystical forest, surrounded by ancient oak trees that glow faintly at night.",
+      "region": "The Whispering Woods",
+      "notable_features": "The Whispering Glade (sacred clearing), Moonfall Inn, Crystal River with healing properties",
+      "inhabitants": "500 villagers (mostly humans and halflings), some forest spirits",
+      "dangers": "Forest predators, occasional bandit raids, mischievous sprites",
+      "climate": "Temperate forest climate, mild winters, rainy springs"
+    }
+  ]
+}

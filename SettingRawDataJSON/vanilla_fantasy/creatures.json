@@ -1,0 +1,16 @@
+{
+  "creatures": [
+    {
+      "name": "Arcane Fox (Kitsunari)",
+      "classification": "Aether-Touched Beast",
+      "description": "A fox with two tails and fur that shifts like a mirage. Mildly telepathic and capable of minor illusions.",
+      "habitat": "Ley Line verges, magical groves, enchanted forests",
+      "behavior": "Curious, playful trickster, protective of magical areas, avoids direct confrontation",
+      "diet": "Omnivorous - berries, small animals, magical energy from ley lines",
+      "abilities": "Telepathic communication, minor illusion spells, short-range phase shifting, can sense magic",
+      "weaknesses": "Vulnerable to cold iron, dislikes loud noises, cannot phase through consecrated ground",
+      "threat_level": "Low (non-aggressive unless threatened)",
+      "loot": "Arcane Fox Tail Feather (rare alchemical ingredient), Kitsunari Pelt (magical component)"
+    }
+  ]
+}

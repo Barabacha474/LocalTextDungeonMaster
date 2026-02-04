@@ -8,6 +8,7 @@ class AdventureLogger:
     """
     SQLite-based logger for adventure turns.
     Each adventure gets its own database file.
+    Now with sequential IDs that always match document position.
     """
 
     def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = "./adventure_logs"):
@@ -46,10 +47,10 @@ class AdventureLogger:
         self.conn = sqlite3.connect(self.db_path)
         self.cursor = self.conn.cursor()
 
-        # Create turns table if it doesn't exist
+        # Create turns table without autoincrement
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS turns (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 role TEXT NOT NULL CHECK(role IN ('System', 'Player')),
                 content TEXT NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -59,6 +60,25 @@ class AdventureLogger:
         # Create index for faster retrieval by id
         self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_turn_id ON turns(id)")
 
+        self.conn.commit()
+
+    def _get_next_id(self) -> int:
+        """Calculate the next ID based on current document count."""
+        self.cursor.execute("SELECT COUNT(*) FROM turns")
+        count = self.cursor.fetchone()[0]
+        return count + 1
+
+    def _reorder_ids_after_delete(self, deleted_id: int):
+        """
+        Reorder IDs after deletion so they remain sequential.
+        This decrements IDs of all documents with ID > deleted_id.
+        """
+        # SQLite UPDATE doesn't support ORDER BY, but we don't need it
+        # We just need to decrement IDs of all rows with higher IDs
+        self.cursor.execute(
+            "UPDATE turns SET id = id - 1 WHERE id > ?",
+            (deleted_id,)
+        )
         self.conn.commit()
 
     def write(self, role: str, content: str) -> int:
@@ -75,13 +95,16 @@ class AdventureLogger:
         if role not in ['System', 'Player']:
             raise ValueError("Role must be 'System' or 'Player'")
 
+        # Calculate next ID (count + 1)
+        new_id = self._get_next_id()
+
         self.cursor.execute(
-            "INSERT INTO turns (role, content) VALUES (?, ?)",
-            (role, content)
+            "INSERT INTO turns (id, role, content) VALUES (?, ?, ?)",
+            (new_id, role, content)
         )
         self.conn.commit()
 
-        return self.cursor.lastrowid
+        return new_id
 
     def read(self, turn_id: int) -> Optional[Dict[str, Any]]:
         """
@@ -129,7 +152,7 @@ class AdventureLogger:
 
     def delete(self, turn_id: int) -> bool:
         """
-        Delete a specific turn.
+        Delete a specific turn and reorder remaining IDs.
 
         Args:
             turn_id: ID of the turn to delete
@@ -137,10 +160,25 @@ class AdventureLogger:
         Returns:
             bool: True if deletion successful, False if turn not found
         """
+        # First check if the turn exists
+        self.cursor.execute("SELECT COUNT(*) FROM turns WHERE id = ?", (turn_id,))
+        if self.cursor.fetchone()[0] == 0:
+            return False
+
+        # Get the total count before deletion
+        total_before = self.get_turn_count()
+
+        # Delete the turn
         self.cursor.execute("DELETE FROM turns WHERE id = ?", (turn_id,))
+
+        # Check if we're deleting the last turn (no need to reorder)
+        if turn_id != total_before:
+            # Reorder IDs of turns that come after
+            self._reorder_ids_after_delete(turn_id)
+
         self.conn.commit()
 
-        return self.cursor.rowcount > 0
+        return True
 
     def get_last_n_turns(self, n: int) -> List[Dict[str, Any]]:
         """
@@ -148,7 +186,6 @@ class AdventureLogger:
 
         Args:
             n: Number of turns to retrieve
-            include_system: Whether to include System turns
 
         Returns:
             List of turn dictionaries, ordered by turn ID (ascending)
@@ -264,7 +301,6 @@ class AdventureLogger:
     def clear_all_turns(self):
         """Clear all turns from the database (keep the structure)."""
         self.cursor.execute("DELETE FROM turns")
-        self.cursor.execute("DELETE FROM sqlite_sequence WHERE name='turns'")
         self.conn.commit()
 
     def delete_database(self):
@@ -317,44 +353,46 @@ class AdventureLogger:
         return adventures
 
 
-# Example usage
+# Example usage demonstrating the new ID behavior
 if __name__ == "__main__":
     # Create/connect to an adventure log
-    logger = AdventureLogger("The Lost Temple")
+    logger = AdventureLogger("Sequential Test")
+
+    # Clear any existing data
+    logger.clear_all_turns()
 
     # Write some turns
-    turn1_id = logger.write("System", "You stand before an ancient temple covered in vines.")
-    turn2_id = logger.write("Player", "I carefully examine the entrance for traps.")
-    turn3_id = logger.write("System", "You notice a pressure plate hidden under moss.")
+    print("=== Initial insertions ===")
+    turn1_id = logger.write("System", "First message")
+    turn2_id = logger.write("Player", "Second message")
+    turn3_id = logger.write("System", "Third message")
+    turn4_id = logger.write("Player", "Fourth message")
 
-    print(f"Turn 1 ID: {turn1_id}")
-    print(f"Turn 2 ID: {turn2_id}")
-    print(f"Turn 3 ID: {turn3_id}")
+    print(f"Turn IDs: {turn1_id}, {turn2_id}, {turn3_id}, {turn4_id}")
 
-    # Read a specific turn
-    turn = logger.read(turn2_id)
-    print(f"\nTurn {turn2_id}: {turn}")
+    # Show all turns
+    all_turns = logger.get_turns_range(1, logger.get_turn_count())
+    for turn in all_turns:
+        print(f"ID {turn['id']}: {turn['content']}")
 
-    # Update a turn
-    logger.update(turn2_id, "I carefully examine the entrance for traps and markings.")
+    # Delete turn with ID 2
+    print("\n=== Deleting turn with ID 2 ===")
+    logger.delete(2)
 
-    # Get last 5 turns
-    last_turns = logger.get_last_n_turns(5)
-    print(f"\nLast {len(last_turns)} turns:")
-    for t in last_turns:
-        print(f"  [{t['id']}] {t['role']}: {t['content'][:50]}...")
+    # Show remaining turns (IDs should be 1, 2, 3)
+    all_turns = logger.get_turns_range(1, logger.get_turn_count())
+    for turn in all_turns:
+        print(f"ID {turn['id']}: {turn['content']}")
 
-    # Get turn count
-    count = logger.get_turn_count()
-    print(f"\nTotal turns: {count}")
+    # Add a new turn - should get ID 4 (3 existing + 1)
+    print("\n=== Adding new turn after deletion ===")
+    new_turn_id = logger.write("System", "Fifth message (new)")
+    print(f"New turn ID: {new_turn_id}")
 
-    # Search for content
-    results = logger.search_content("temple")
-    print(f"\nTurns mentioning 'temple': {len(results)}")
-
-    # List all adventures
-    adventures = AdventureLogger.list_adventures("./adventure_logs")
-    print(f"\nAvailable adventures: {adventures}")
+    # Show all turns (IDs should be 1, 2, 3, 4)
+    all_turns = logger.get_turns_range(1, logger.get_turn_count())
+    for turn in all_turns:
+        print(f"ID {turn['id']}: {turn['content']}")
 
     # Close connection
     logger.close()

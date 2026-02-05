@@ -1,3 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+env.bak/
+venv.bak/
+
+# PyCharm/IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# Model files and log files
 /local_sentence_transformer_model/all-MiniLM-L6-v2/
 /adventure_memories/
 /adventure_logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Large binary files
+*.safetensors
+*.pth
+*.pt
+*.h5
+*.hdf5
+*.bin
+*.dat
+
+# Pickle files
+*.pkl
+*.pickle
+
+# FAISS indexes
+*.faiss
+faiss_index
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~

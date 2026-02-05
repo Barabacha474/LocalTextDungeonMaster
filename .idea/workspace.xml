@@ -6,11 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="ce26f615-a38a-40a3-8327-25570c0457fe" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/AdventureLogger.py" beforeDir="false" afterPath="$PROJECT_DIR$/AdventureLogger.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Client.py" beforeDir="false" afterPath="$PROJECT_DIR$/Client.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/PromptConstructor.py" beforeDir="false" afterPath="$PROJECT_DIR$/PromptConstructor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SettingDataLoaders/FaissVectorDB.py" beforeDir="false" afterPath="$PROJECT_DIR$/SettingDataLoaders/FaissVectorDB.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SettingRawDataJSON/vanilla_fantasy/PromptCore.json" beforeDir="false" afterPath="$PROJECT_DIR$/SettingRawDataJSON/vanilla_fantasy/PromptCore.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -107,7 +102,13 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="CUSTOM_BOOLEAN_PROPERTIES">
+                <map>
+                  <entry key="Show.Git.Branches" value="false" />
+                </map>
+              </option>
+            </State>
           </value>
         </entry>
       </map>

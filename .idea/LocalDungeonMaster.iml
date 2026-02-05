@@ -3,6 +3,8 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/adventure_memories/models/all-MiniLM-L6-v2/2_Normalize" />
+      <excludeFolder url="file://$MODULE_DIR$/local_sentence_transformer_model/all-MiniLM-L6-v2/2_Normalize" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.13 (pythonProject1) (2)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

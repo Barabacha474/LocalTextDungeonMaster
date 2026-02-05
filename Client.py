@@ -6,7 +6,8 @@ from pathlib import Path
 from PromptConstructor import PromptConstructor
 from SettingDataLoaders.FaissVectorDB import FAISSVectorDB
 from AdventureLogger import AdventureLogger
-from Summarizer import Summarizer
+from SummarizerOllamaLLM import SummarizerOllamaLLM
+from LastNTurnsPromptConstructor import LastNTurnsPromptConstructor
 
 
 def main():
@@ -31,7 +32,18 @@ def main():
 
     # Initialize Summarizer
     print("Initializing summarizer...")
-    summarizer = Summarizer()
+    # Create LastNTurnsPromptConstructor for summarizer
+    summarizer_prompt_constructor = LastNTurnsPromptConstructor(
+        adventure_logger=sql_db,
+        num_turns=4,
+        special_command=SummarizerOllamaLLM._get_default_summarization_prompt()
+    )
+
+    # Initialize Summarizer OllamaLLM
+    summarizer = SummarizerOllamaLLM(
+        model='mistral:7b-instruct-v0.3-q4_0',
+        prompt_constructor=summarizer_prompt_constructor
+    )
 
     # Check if there are existing turns (not initial prompt)
     existing_turns = sql_db.get_turn_count()
@@ -141,13 +153,13 @@ def main():
 
                 print(f"\n=== REGENERATING LAST DM RESPONSE ===")
 
-                if last_turn_role == 'System' and second_last_turn_role == 'Player':
+                if last_turn_role == 'DM' and second_last_turn_role == 'Player':
 
-                    # Case: [Player, System] - Normal regeneration
+                    # Case: [Player, DM] - Normal regeneration
 
                     last_player_turn = last_turns[1]  # Player turn
 
-                    last_dm_turn = last_turns[0]  # System turn
+                    last_dm_turn = last_turns[0]  # DM turn
 
                     print(f"Original player input: {last_player_turn['content'][:100]}...")
 
@@ -170,9 +182,9 @@ def main():
                     skip_player_logging = True
 
 
-                elif last_turn_role == 'System' and second_last_turn_role == 'System':
+                elif last_turn_role == 'DM' and second_last_turn_role == 'DM':
 
-                    # Case: [System, System] - DM-DM pair
+                    # Case: [DM, DM] - DM-DM pair
 
                     last_dm_turn = last_turns[1]  # Most recent DM
 
@@ -233,9 +245,9 @@ def main():
 
                 print(f"\n=== UNDO ACTION ===")
 
-                if last_turn_role == 'System' and second_last_turn_role == 'Player':
+                if last_turn_role == 'DM' and second_last_turn_role == 'Player':
 
-                    # Case: [Player, System] - Delete both player and DM
+                    # Case: [Player, DM] - Delete both player and DM
 
                     sql_db.delete(last_turn['id'])
 
@@ -254,9 +266,9 @@ def main():
                     print("Last player-DM pair removed.")
 
 
-                elif last_turn_role == 'System' and second_last_turn_role == 'System':
+                elif last_turn_role == 'DM' and second_last_turn_role == 'DM':
 
-                    # Case: [System, System] - Delete only the last DM
+                    # Case: [DM, DM] - Delete only the last DM
 
                     sql_db.delete(last_turn['id'])
 
@@ -380,7 +392,7 @@ def main():
             full_response = f"[Error: {e}]"
 
         # Log DM response to SQL database
-        dm_turn_id = sql_db.write("System", full_response)
+        dm_turn_id = sql_db.write("DM", full_response)
         print(f"Logged DM response (Turn ID: {dm_turn_id})")
 
         # Clean up regeneration variables
@@ -388,32 +400,28 @@ def main():
             del random_seed
             del skip_player_logging
 
-        # Every 2 turns, summarize and add to vector DB
+        # Every 4 turns, summarize and add to vector DB
         if turn_counter % 4 == 0:
             print("\n" + "=" * 60)
             print("SUMMARIZING LAST 4 TURNS")
             print("=" * 60)
 
             try:
-                # Get last 4 turns
+                # Generate summary using the SummarizerOllamaLLM
+                print("Generating summary...")
+                summary = summarizer.generate(
+                    num_turns=4,  # Summarize last 4 turns
+                    desired_response_size=150,  # Changed from 300 to 150 words for consistency
+                    temperature=0.3,
+                    seed=42
+                )
+
+                print(f"\nSUMMARY:\n {summary}\n")
+
+                # Get the turn IDs for metadata (need last 4 turns for range)
                 last_turns = sql_db.get_last_n_turns(4)
 
                 if last_turns:
-                    # Format conversation for summarization
-                    conversation_text = ""
-                    for turn in last_turns:
-                        speaker = "Player" if turn['role'] == 'Player' else "DM"
-                        conversation_text += f"{speaker}: {turn['content']}\n\n"
-
-                    # Generate summary
-                    print("Generating summary...")
-                    summary = summarizer.summarize(
-                        input_text=conversation_text,
-                        desired_response_size=300
-                    )
-
-                    print(f"\nSUMMARY:\n {summary}\n")
-
                     # Add summary to vector DB
                     memory_text = f"Summary of turns {last_turns[0]['id']}-{last_turns[-1]['id']}:\n{summary}"
 
@@ -428,7 +436,6 @@ def main():
                         }
                     )
                     print("Summary added to vector database as memory.")
-
                 else:
                     print("Not enough turns to summarize yet.")
 

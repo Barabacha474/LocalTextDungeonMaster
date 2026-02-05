@@ -51,7 +51,7 @@ class AdventureLogger:
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS turns (
                 id INTEGER PRIMARY KEY,
-                role TEXT NOT NULL CHECK(role IN ('System', 'Player')),
+                role TEXT NOT NULL CHECK(role IN ('DM', 'Player')),
                 content TEXT NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
@@ -86,14 +86,14 @@ class AdventureLogger:
         Write a new turn to the database.
 
         Args:
-            role: 'System' or 'Player'
+            role: 'DM' or 'Player'
             content: Text content of the turn
 
         Returns:
             int: The ID of the inserted turn
         """
-        if role not in ['System', 'Player']:
-            raise ValueError("Role must be 'System' or 'Player'")
+        if role not in ['DM', 'Player']:
+            raise ValueError("Role must be 'DM' or 'Player'")
 
         # Calculate next ID (count + 1)
         new_id = self._get_next_id()
@@ -363,9 +363,9 @@ if __name__ == "__main__":
 
     # Write some turns
     print("=== Initial insertions ===")
-    turn1_id = logger.write("System", "First message")
+    turn1_id = logger.write("DM", "First message")
     turn2_id = logger.write("Player", "Second message")
-    turn3_id = logger.write("System", "Third message")
+    turn3_id = logger.write("DM", "Third message")
     turn4_id = logger.write("Player", "Fourth message")
 
     print(f"Turn IDs: {turn1_id}, {turn2_id}, {turn3_id}, {turn4_id}")
@@ -386,7 +386,7 @@ if __name__ == "__main__":
 
     # Add a new turn - should get ID 4 (3 existing + 1)
     print("\n=== Adding new turn after deletion ===")
-    new_turn_id = logger.write("System", "Fifth message (new)")
+    new_turn_id = logger.write("DM", "Fifth message (new)")
     print(f"New turn ID: {new_turn_id}")
 
     # Show all turns (IDs should be 1, 2, 3, 4)

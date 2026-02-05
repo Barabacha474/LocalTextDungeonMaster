@@ -186,7 +186,7 @@ class PromptConstructor:
                 # Log the player opening text to SQL database if not already logged
                 if not self.has_logged_opening_text and self.adventure_logger:
                     try:
-                        self.adventure_logger.write('System', player_opening_text)
+                        self.adventure_logger.write('DM', player_opening_text)
                         self.has_logged_opening_text = True
                         print(f"Logged player opening text to SQL database: {player_opening_text[:50]}...")
                     except Exception as e:
@@ -353,7 +353,7 @@ class PromptConstructor:
         Helper method to log a turn to the adventure logger.
 
         Args:
-            role (str): 'Player' or 'System' (use 'System' for DM responses)
+            role (str): 'Player' or 'DM' (use 'DM' for DM responses)
             content (str): Content of the turn
 
         Returns:
@@ -361,8 +361,8 @@ class PromptConstructor:
         """
         try:
             if self.adventure_logger:
-                # Map 'System' to 'System' in AdventureLogger terms
-                logger_role = 'System' if role == 'System' else 'Player'
+                # Map 'DM' to 'DM' in AdventureLogger terms
+                logger_role = 'DM' if role == 'DM' else 'Player'
                 return self.adventure_logger.write(logger_role, content)
         except Exception as e:
             print(f"Error logging turn: {e}")

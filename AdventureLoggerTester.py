@@ -18,15 +18,15 @@ class AdventureLoggerTester:
 
         # Test data
         cls.sample_turns = [
-            {"role": "System", "content": "You stand at the entrance of a dark cave."},
+            {"role": "DM", "content": "You stand at the entrance of a dark cave."},
             {"role": "Player", "content": "I light a torch and enter cautiously."},
-            {"role": "System", "content": "The cave is damp and echoes with distant dripping water."},
+            {"role": "DM", "content": "The cave is damp and echoes with distant dripping water."},
             {"role": "Player", "content": "I listen carefully for any sounds."},
-            {"role": "System", "content": "You hear a low growl from deeper in the cave."},
+            {"role": "DM", "content": "You hear a low growl from deeper in the cave."},
             {"role": "Player", "content": "I ready my weapon and prepare for combat."},
-            {"role": "System", "content": "A large wolf emerges from the shadows, teeth bared."},
+            {"role": "DM", "content": "A large wolf emerges from the shadows, teeth bared."},
             {"role": "Player", "content": "I attack the wolf with my sword!"},
-            {"role": "System", "content": "Your sword strikes true, and the wolf yelps in pain."},
+            {"role": "DM", "content": "Your sword strikes true, and the wolf yelps in pain."},
             {"role": "Player", "content": "I press the attack, aiming for a finishing blow."},
         ]
 
@@ -113,7 +113,7 @@ class AdventureLoggerTester:
 
         # Test that existing database is not overwritten
         logger1 = self.create_logger("Existing Adventure")
-        logger1.write("System", "Original content")
+        logger1.write("DM", "Original content")
         turn_id = logger1.write("Player", "First player action")
         logger1.close()
         self.loggers.remove(logger1)
@@ -132,7 +132,7 @@ class AdventureLoggerTester:
         logger = self.create_logger("CRUD Test")
 
         # Test write
-        turn_id = logger.write("System", "Initial system message")
+        turn_id = logger.write("DM", "Initial DM message")
         assert turn_id == 1, "First ID should be 1"
         print(f"✓ Write operation returned ID: {turn_id}")
 
@@ -140,16 +140,16 @@ class AdventureLoggerTester:
         turn = logger.read(turn_id)
         assert turn is not None, "Should find written turn"
         assert turn["id"] == turn_id, "ID should match"
-        assert turn["role"] == "System", "Role should match"
-        assert turn["content"] == "Initial system message", "Content should match"
+        assert turn["role"] == "DM", "Role should match"
+        assert turn["content"] == "Initial DM message", "Content should match"
         assert "timestamp" in turn, "Should have timestamp"
         print(f"✓ Read operation retrieved turn: {turn['content'][:30]}...")
 
         # Test update
-        success = logger.update(turn_id, "Updated system message")
+        success = logger.update(turn_id, "Updated DM message")
         assert success, "Update should succeed"
         updated = logger.read(turn_id)
-        assert updated["content"] == "Updated system message", "Content should be updated"
+        assert updated["content"] == "Updated DM message", "Content should be updated"
         print(f"✓ Update operation modified content")
 
         # Test update non-existent turn
@@ -174,7 +174,7 @@ class AdventureLoggerTester:
             logger.write("InvalidRole", "Should fail")
             assert False, "Should have raised ValueError"
         except ValueError as e:
-            assert "Role must be 'System' or 'Player'" in str(e)
+            assert "Role must be 'DM' or 'Player'" in str(e)
             print("✓ Invalid role correctly rejected")
 
     def test_batch_operations(self):
@@ -318,7 +318,7 @@ class AdventureLoggerTester:
         assert logger.get_turn_count() == 0, "Should have 0 turns after clear"
 
         # Verify we can write new turns after clear
-        new_id = logger.write("System", "New turn after clear")
+        new_id = logger.write("DM", "New turn after clear")
         # Note: In SQLite, AUTOINCREMENT may not reset, but at least it should work
         print("✓ clear_all_turns works correctly")
 
@@ -345,7 +345,7 @@ class AdventureLoggerTester:
 
         # Test normal context manager usage
         with AdventureLogger("Context Test", self.test_dir) as logger:
-            turn_id = logger.write("System", "Inside context manager")
+            turn_id = logger.write("DM", "Inside context manager")
             assert logger.conn is not None, "Connection should be open"
             print("✓ Context manager opened connection")
 
@@ -356,7 +356,7 @@ class AdventureLoggerTester:
         # Test with exception - data should be preserved
         try:
             with AdventureLogger("Exception Test", self.test_dir) as logger:
-                logger.write("System", "Before exception")
+                logger.write("DM", "Before exception")
                 raise ValueError("Test exception")
         except ValueError:
             pass
@@ -374,7 +374,7 @@ class AdventureLoggerTester:
 
         # Create and write to logger
         logger1 = self.create_logger("Persistence Test")
-        turn1_id = logger1.write("System", "First message")
+        turn1_id = logger1.write("DM", "First message")
         turn2_id = logger1.write("Player", "Player response")
         logger1.close()
         self.loggers.remove(logger1)
@@ -413,7 +413,7 @@ class AdventureLoggerTester:
         for name in adventure_names:
             logger = self.create_logger(name)
             created_loggers.append(logger)
-            logger.write("System", f"Start of {name}")
+            logger.write("DM", f"Start of {name}")
 
         # Close all loggers to release file locks
         for logger in created_loggers:
@@ -450,7 +450,7 @@ class AdventureLoggerTester:
         # Time writing turns
         start_time = time.time()
         for i in range(50):  # Reduced from 100 for faster tests
-            role = "System" if i % 2 == 0 else "Player"
+            role = "DM" if i % 2 == 0 else "Player"
             content = f"Turn {i + 1}: {'Test content ' * (i % 3 + 1)}"
             logger.write(role, content)
         write_time = time.time() - start_time
@@ -483,15 +483,15 @@ class AdventureLoggerTester:
 
         # Simulate a gaming session
         session_log = [
-            ("System", "Welcome to the Forest of Shadows. The air is cold and still."),
+            ("DM", "Welcome to the Forest of Shadows. The air is cold and still."),
             ("Player", "I draw my cloak tighter and scan the area for threats."),
-            ("System", "You see movement in the bushes ahead. Something is watching you."),
+            ("DM", "You see movement in the bushes ahead. Something is watching you."),
             ("Player", "I ready my bow and approach cautiously."),
-            ("System", "A pair of glowing red eyes emerge from the darkness."),
+            ("DM", "A pair of glowing red eyes emerge from the darkness."),
             ("Player", "I fire an arrow at the eyes!"),
-            ("System", "The arrow hits true! A shadowy creature screeches and retreats."),
+            ("DM", "The arrow hits true! A shadowy creature screeches and retreats."),
             ("Player", "I pursue the wounded creature."),
-            ("System", "You find the creature collapsed near a strange glowing crystal."),
+            ("DM", "You find the creature collapsed near a strange glowing crystal."),
             ("Player", "I examine the crystal carefully."),
         ]
 
@@ -511,7 +511,7 @@ class AdventureLoggerTester:
 
         # Verify context content
         context_roles = [t["role"] for t in context]
-        assert "System" in context_roles and "Player" in context_roles
+        assert "DM" in context_roles and "Player" in context_roles
         print(f"✓ Retrieved context of {len(context)} turns for LLM")
 
         # Search for specific events - FIXED: Use case-insensitive search or verify content

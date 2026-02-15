@@ -6,7 +6,7 @@ import os
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set
 import re
 
 
@@ -294,42 +294,104 @@ class FAISSVectorDB:
 
         return chunks
 
-    def search(self, query: str, k: int = 5, threshold: float = 0.3,
-               filter_metadata: Optional[Dict] = None, chunk_size: Optional[int] = None) -> List[Dict]:
+    def search(self, query: str, k_per_cascade: int = 5, number_of_cascades: int = 1,
+               threshold: float = 0.3, filter_metadata: Optional[Dict] = None,
+               chunk_size: Optional[int] = None, debug: bool = False) -> List[Dict]:
         """
-        Search for similar documents with optional query chunking.
+        Search for similar documents with optional cascade expansion.
 
         Args:
             query: Query text to search for
-            k: Number of results to return
+            k_per_cascade: Number of results to retrieve per cascade step
+            number_of_cascades: Number of iterative search steps. If 1, performs a single search.
             threshold: Minimum similarity score (0.0-1.0)
             filter_metadata: Optional metadata to filter results by
             chunk_size: If provided, split long queries into chunks of this size (in words).
                        If None or 0, use the entire query as is.
 
         Returns:
-            List of result dictionaries sorted by similarity (highest first)
+            List of unique result dictionaries from all cascade steps,
+            sorted by similarity (highest first)
         """
         if self.index.ntotal == 0 or len(self.documents) == 0:
             print(f"Warning: Index for '{self.adventure_name}' is empty!")
             return []
 
-        # If chunk_size is specified and query is long enough, split into chunks
-        if chunk_size is not None and chunk_size > 0:
-            return self._search_with_chunks(query, k, threshold, filter_metadata, chunk_size)
+        if debug:
+            print(f"\n[DEBUG] Starting cascade search with {number_of_cascades} steps, k_per_cascade={k_per_cascade}, threshold={threshold}")
 
-        # Original search logic for single query
-        return self._search_single_query(query, k, threshold, filter_metadata)
+        # Single search (no cascade)
+        if number_of_cascades <= 1:
+            if chunk_size is not None and chunk_size > 0:
+                return self._search_with_chunks(query, k_per_cascade, threshold, filter_metadata, chunk_size)
+            else:
+                return self._search_single_query(query, k_per_cascade, threshold, filter_metadata)
+
+        # Cascade search
+        all_results = []          # list of unique result dicts (in order of discovery)
+        seen_ids = set()           # set of document IDs already added
+        current_query = query
+
+        for step in range(number_of_cascades):
+            # Perform search for this step
+            if chunk_size is not None and chunk_size > 0:
+                step_results = self._search_with_chunks(
+                    current_query, k_per_cascade, threshold, filter_metadata,
+                    chunk_size, exclude_ids=seen_ids, debug=debug
+                )
+            else:
+                step_results = self._search_single_query(
+                    current_query, k_per_cascade, threshold, filter_metadata,
+                    exclude_ids=seen_ids, debug=debug
+                )
+
+            if debug:
+                print(f"\n[DEBUG] Cascade step {step + 1}: query = '{current_query[:100]}...'")
+                print(f"[DEBUG] Retrieved {len(step_results)} documents (IDs: {[r['id'] for r in step_results]})")
+
+            # Add new unique results
+            new_ids = set()
+            for res in step_results:
+                if res['id'] not in seen_ids:
+                    seen_ids.add(res['id'])
+                    all_results.append(res)
+                    new_ids.add(res['id'])
+
+            # Prepare next query from the texts of the results just retrieved
+            if step < number_of_cascades - 1:
+                if not step_results:
+                    # No results to continue, break early
+                    break
+                # Concatenate texts of the current step's results
+                current_query = ' '.join([r['text'] for r in step_results])
+
+        # Sort all unique results by similarity descending
+        all_results.sort(key=lambda x: x['similarity'], reverse=True)
+        return all_results
 
     def _search_single_query(self, query: str, k: int, threshold: float,
-                             filter_metadata: Optional[Dict] = None) -> List[Dict]:
-        """Search using a single query (original search logic)."""
+                             filter_metadata: Optional[Dict] = None,
+                             exclude_ids: Optional[Set[int]] = None,
+                             debug: bool = False) -> List[Dict]:
+        """
+        Search using a single query (original search logic).
+
+        Args:
+            query: Original query text
+            k: Number of results to return
+            threshold: Minimum similarity score
+            filter_metadata: Optional metadata filter
+            debug: If True, print debug information
+
+        Returns:
+            List of unique results sorted by similarity
+        """
         # Generate query embedding
         query_embedding = self.embedding_model.encode([query]).astype('float32')
         faiss.normalize_L2(query_embedding)
 
-        # Search
-        distances, indices = self.index.search(query_embedding, min(k, self.index.ntotal))
+        # Search (request more than k to see beyond)
+        distances, indices = self.index.search(query_embedding, min(k * 2, self.index.ntotal))
 
         # Collect results
         results = []
@@ -339,7 +401,6 @@ class FAISSVectorDB:
         for distance, idx in zip(distances[0], indices[0]):
             print(f"distance: {distance}\n")
             if idx != -1 and distance >= threshold:
-                # Ensure idx is within current documents list bounds
                 if idx < len(self.documents):
                     doc = self.documents[idx]
 
@@ -347,6 +408,10 @@ class FAISSVectorDB:
                     if filter_metadata:
                         if not self._matches_filter(doc['metadata'], filter_metadata):
                             continue
+
+                    # Exclude already seen IDs
+                    if exclude_ids and doc['id'] in exclude_ids:
+                        continue
 
                     results.append({
                         'text': doc['text'],
@@ -358,44 +423,83 @@ class FAISSVectorDB:
 
         # Sort by similarity (highest first)
         results.sort(key=lambda x: x['similarity'], reverse=True)
+
+        if debug:
+            print(
+                f"[DEBUG] _search_single_query: raw distances (first {min(5, len(distances[0]))}):\n{distances[0][:5]}\n{indices[0][:5]}")
+            # Find the first below threshold or the (k+1)-th
+            all_pairs = list(zip(distances[0], indices[0]))
+            valid_pairs = [(d, idx) for d, idx in all_pairs if idx != -1]
+            if results:
+                top_id = results[0]['id']
+                top_dist = results[0]['similarity']
+                print(f"[DEBUG] Best match: ID {top_id} with similarity {top_dist:.4f}")
+            # First candidate that was not included (either below threshold or excluded)
+            not_chosen = None
+            for d, idx in valid_pairs:
+                if idx != -1 and d < threshold:
+                    not_chosen = (idx, d)
+                    break
+            if not_chosen is None and len(valid_pairs) > len(results):
+                not_chosen = valid_pairs[len(results)] if len(valid_pairs) > len(results) else None
+            if not_chosen:
+                doc = self.get_by_id(not_chosen[0])
+                if doc:
+                    print(
+                        f"[DEBUG] Nearest not chosen: ID {not_chosen[0]} with similarity {not_chosen[1]:.4f} (text: {doc['text'][:80]}...)")
+                else:
+                    print(
+                        f"[DEBUG] Nearest not chosen: ID {not_chosen[0]} with similarity {not_chosen[1]:.4f} (document not found?)")
+
         return results[:k]
 
     def _search_with_chunks(self, query: str, k: int, threshold: float,
-                            filter_metadata: Optional[Dict] = None, chunk_size: int = 200) -> List[Dict]:
+                            filter_metadata: Optional[Dict] = None, chunk_size: int = 200,
+                            exclude_ids: Optional[Set[int]] = None,
+                            debug: bool = False) -> List[Dict]:
         """
-        Search by splitting query into chunks and combining results.
+        Search by splitting query into chunks and combining results,
+        optionally excluding certain IDs.
 
         Args:
             query: Original query text
-            k: Number of final results to return
+            k: Number of results to return from this chunked search
             threshold: Minimum similarity score
             filter_metadata: Optional metadata filter
             chunk_size: Words per chunk
+            exclude_ids: Set of document IDs to exclude from results
+            debug: If True, print debug information
 
         Returns:
             List of unique results sorted by similarity
         """
-        print(f"Searching with query chunking (chunk_size={chunk_size})")
+        if debug:
+            print(f"[DEBUG] Searching with query chunking (chunk_size={chunk_size})")
 
         # Split query into chunks
         query_chunks = self._chunk_query(query, chunk_size)
-        print(f"Split query into {len(query_chunks)} chunks")
+        if debug:
+            print(f"[DEBUG] Split query into {len(query_chunks)} chunks")
 
-        # Use a set to track unique document IDs
-        seen_ids = set()
+        # Use a set to track unique document IDs within this chunked search
+        seen_ids_in_step = set()
         all_results = []
 
         # Search for each chunk
         for i, chunk in enumerate(query_chunks):
-            print(f"Searching chunk {i + 1}/{len(query_chunks)}: '{chunk[:50]}...'")
+            if debug:
+                print(f"[DEBUG] Searching chunk {i + 1}/{len(query_chunks)}: '{chunk[:50]}...'")
 
             # Get results for this chunk (request more than k to get diverse results)
-            chunk_results = self._search_single_query(chunk, k * 2, threshold, filter_metadata)
+            chunk_results = self._search_single_query(
+                chunk, k * 3, threshold, filter_metadata,
+                exclude_ids=exclude_ids, debug=debug
+            )
 
-            # Add unique results
+            # Add unique results (avoid duplicates within this step)
             for result in chunk_results:
-                if result['id'] not in seen_ids:
-                    seen_ids.add(result['id'])
+                if result['id'] not in seen_ids_in_step:
+                    seen_ids_in_step.add(result['id'])
                     all_results.append(result)
 
         # Sort all results by similarity
@@ -405,7 +509,6 @@ class FAISSVectorDB:
         final_results = all_results[:k]
         print(f"Found {len(final_results)} unique results from {len(query_chunks)} query chunks")
         return final_results
-
     def _matches_filter(self, doc_metadata: Dict, filter_metadata: Dict) -> bool:
         """Check if document metadata matches filter criteria."""
         for key, value in filter_metadata.items():
@@ -628,5 +731,195 @@ class FAISSVectorDB:
         return adventures
 
 if __name__ == "__main__":
-    vector_db = FAISSVectorDB()
-    print(vector_db.get_stats())
+    import argparse
+    import shlex
+    import sys
+    from pathlib import Path
+
+    # Configuration
+    DEFAULT_ADVENTURE = "vanilla_fantasy"
+    STORAGE_PATH = "../adventure_memories"
+
+    # Parse adventure name from command line (optional)
+    adventure_name = DEFAULT_ADVENTURE
+    if len(sys.argv) > 1:
+        adventure_name = sys.argv[1]
+
+    # Build expected paths
+    safe_name = "".join(c if c.isalnum() or c in " _-" else "_" for c in adventure_name)
+    safe_name = "_".join(filter(None, safe_name.split("_")))
+    adventure_dir = Path(STORAGE_PATH).resolve() / safe_name
+    index_path = adventure_dir / "faiss_index"
+    docs_path = adventure_dir / "documents.pkl"
+
+    # Check if database exists
+    if not (index_path.exists() and docs_path.exists()):
+        print(f"Error: Adventure database '{adventure_name}' does not exist at {adventure_dir}")
+        print("Available adventures:")
+        available = FAISSVectorDB.list_adventures(STORAGE_PATH)
+        for adv in available:
+            print(f"  {adv}")
+        sys.exit(1)
+
+    # Create database instance (will load existing)
+    db = FAISSVectorDB(adventure_name=adventure_name, storage_path=STORAGE_PATH)
+
+    def print_help():
+        print("\nAvailable commands:")
+        print("  help                                  Show this help")
+        print("  list [--limit N] [--offset N]         List documents (with pagination)")
+        print("  search <query> [--k N] [--threshold F] [--cascades N] [--chunk-size N] [--filter key=val ...]")
+        print("  stats                                  Show database statistics")
+        print("  insert <text> [--metadata key=val ...] Insert a single document")
+        print("  delete <id>                            Delete document by ID")
+        print("  exit                                   Exit the program")
+        print()
+
+    def parse_key_value_pairs(args):
+        """Convert list of 'key=value' strings into dict."""
+        result = {}
+        for item in args:
+            if '=' in item:
+                k, v = item.split('=', 1)
+                result[k] = v
+            else:
+                print(f"Warning: ignoring malformed metadata '{item}' (expected key=value)")
+        return result
+
+    print(f"FAISS Vector DB CLI for adventure '{adventure_name}'")
+    print_help()
+
+    while True:
+        try:
+            line = input("> ").strip()
+            if not line:
+                continue
+            # Use shlex to split respecting quotes
+            parts = shlex.split(line)
+            command = parts[0].lower()
+
+            if command == "exit":
+                break
+
+            elif command == "help":
+                print_help()
+
+            elif command == "list":
+                # Parse optional --limit and --offset
+                limit = None
+                offset = None
+                i = 1
+                while i < len(parts):
+                    if parts[i] == "--limit" and i + 1 < len(parts):
+                        limit = int(parts[i + 1])
+                        i += 2
+                    elif parts[i] == "--offset" and i + 1 < len(parts):
+                        offset = int(parts[i + 1])
+                        i += 2
+                    else:
+                        print(f"Unknown option: {parts[i]}")
+                        break
+                all_docs = db.get_all_documents()
+                if offset is not None:
+                    all_docs = all_docs[offset:]
+                if limit is not None:
+                    all_docs = all_docs[:limit]
+                for doc in all_docs:
+                    print(f"ID: {doc['id']} | {doc['text'][:80]}..." if len(doc['text']) > 80 else doc['text'])
+                print(f"Total shown: {len(all_docs)} / {db.get_document_count()}")
+
+            elif command == "search":
+                if len(parts) < 2:
+                    print("Error: missing query. Usage: search <query> [options]")
+                    continue
+                query = parts[1]
+                k = 5
+                threshold = 0.3
+                cascades = 1
+                chunk_size = None
+                filter_metadata = {}
+                debug = False
+                i = 2
+                while i < len(parts):
+                    if parts[i] == "--k" and i + 1 < len(parts):
+                        k = int(parts[i + 1])
+                        i += 2
+                    elif parts[i] == "--threshold" and i + 1 < len(parts):
+                        threshold = float(parts[i + 1])
+                        i += 2
+                    elif parts[i] == "--cascades" and i + 1 < len(parts):
+                        cascades = int(parts[i + 1])
+                        i += 2
+                    elif parts[i] == "--chunk-size" and i + 1 < len(parts):
+                        chunk_size = int(parts[i + 1])
+                        i += 2
+                    elif parts[i] == "--filter":
+                        i += 1
+                        filters = []
+                        while i < len(parts) and '=' in parts[i] and not parts[i].startswith('--'):
+                            filters.append(parts[i])
+                            i += 1
+                        filter_metadata = parse_key_value_pairs(filters)
+                    elif parts[i] == "--debug":
+                        debug = True
+                        i += 1
+                    else:
+                        print(f"Unknown option: {parts[i]}")
+                        break
+                results = db.search(query, k_per_cascade=k, number_of_cascades=cascades,
+                                    threshold=threshold, filter_metadata=filter_metadata,
+                                    chunk_size=chunk_size, debug=debug)
+                print(f"\nFound {len(results)} results:")
+                for r in results:
+                    print(f"ID: {r['id']} | Similarity: {r['similarity']:.3f} | {r['text'][:80]}...")
+                print()
+
+            elif command == "stats":
+                stats = db.get_stats()
+                for key, value in stats.items():
+                    print(f"{key}: {value}")
+
+            elif command == "insert":
+                if len(parts) < 2:
+                    print("Error: missing text. Usage: insert <text> [--metadata key=val ...]")
+                    continue
+                text = parts[1]
+                metadata = {}
+                i = 2
+                while i < len(parts):
+                    if parts[i] == "--metadata":
+                        i += 1
+                        meta_items = []
+                        while i < len(parts) and '=' in parts[i] and not parts[i].startswith('--'):
+                            meta_items.append(parts[i])
+                            i += 1
+                        metadata = parse_key_value_pairs(meta_items)
+                    else:
+                        print(f"Unknown option: {parts[i]}")
+                        break
+                doc_id = db.insert_single(text, metadata)
+                print(f"Inserted document with ID: {doc_id}")
+
+            elif command == "delete":
+                if len(parts) < 2:
+                    print("Error: missing document ID. Usage: delete <id>")
+                    continue
+                try:
+                    doc_id = int(parts[1])
+                except ValueError:
+                    print("Error: document ID must be an integer.")
+                    continue
+                success = db.delete([doc_id])
+                if success:
+                    print(f"Deleted document {doc_id}")
+                else:
+                    print(f"Failed to delete document {doc_id}")
+
+            else:
+                print(f"Unknown command: {command}. Type 'help' for available commands.")
+
+        except KeyboardInterrupt:
+            print("\nExiting...")
+            break
+        except Exception as e:
+            print(f"Error: {e}")

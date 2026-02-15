@@ -11,7 +11,7 @@ class AdventureLogger:
     Now with sequential IDs that always match document position.
     """
 
-    def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = "./adventure_logs"):
+    def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = "../adventure_logs"):
         """
         Initialize or connect to an adventure database.
 
@@ -332,7 +332,7 @@ class AdventureLogger:
         self.close()
 
     @classmethod
-    def list_adventures(cls, storage_path: str = "./adventure_logs") -> List[str]:
+    def list_adventures(cls, storage_path: str = "../adventure_logs") -> List[str]:
         """
         List all adventure databases in the storage directory.
 

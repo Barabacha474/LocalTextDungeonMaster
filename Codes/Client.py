@@ -1,10 +1,8 @@
 import ollama
 import time
-import os
 import random
-from pathlib import Path
 from PromptConstructor import PromptConstructor
-from SettingDataLoaders.FaissVectorDB import FAISSVectorDB
+from FaissVectorDB import FAISSVectorDB
 from AdventureLogger import AdventureLogger
 from SummarizerOllamaLLM import SummarizerOllamaLLM
 from LastNTurnsPromptConstructor import LastNTurnsPromptConstructor
@@ -20,14 +18,14 @@ def main():
     print("Initializing vector database...")
     vector_db = FAISSVectorDB(
         adventure_name=adventure_name,
-        storage_path="./adventure_memories"
+        storage_path="../adventure_memories"
     )
 
     # Initialize SQL database logger
     print("Initializing adventure logger...")
     sql_db = AdventureLogger(
         adventure_name=adventure_name,
-        storage_path="./adventure_logs"
+        storage_path="../adventure_logs"
     )
 
     # Initialize Summarizer
@@ -40,10 +38,8 @@ def main():
     )
 
     # Initialize Summarizer OllamaLLM
-    summarizer = SummarizerOllamaLLM(
-        model='mistral:7b-instruct-v0.3-q4_0',
-        prompt_constructor=summarizer_prompt_constructor
-    )
+    summarizer = SummarizerOllamaLLM(model='llama3.1:8b-instruct-q4_K_M',
+                                     prompt_constructor=summarizer_prompt_constructor)
 
     # Check if there are existing turns (not initial prompt)
     existing_turns = sql_db.get_turn_count()
@@ -56,7 +52,7 @@ def main():
     constructor = PromptConstructor(
         adventure_logger=sql_db,
         vector_db=vector_db,
-        config_path="SettingRawDataJSON/vanilla_fantasy/PromptCore.json"
+        config_path="../SettingRawDataJSON/vanilla_fantasy/PromptCore.json"
     )
 
     # Special continue message

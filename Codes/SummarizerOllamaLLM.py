@@ -13,7 +13,8 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
     def __init__(
             self,
             model: str,
-            prompt_constructor: LastNTurnsPromptConstructor
+            prompt_constructor: LastNTurnsPromptConstructor,
+            desired_response_size: int = 250
     ):
         """
         Initialize the Summarizer Ollama LLM.
@@ -29,7 +30,8 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
         )
 
         self.prompt_constructor = prompt_constructor
-        self.prompt_constructor.set_special_command(SummarizerOllamaLLM._get_default_summarization_prompt())
+        self.prompt_constructor.set_special_command(SummarizerOllamaLLM._get_default_summarization_prompt(desired_response_size))
+        self.desired_response_size = desired_response_size
 
     def generate(
             self,
@@ -50,6 +52,11 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
         Returns:
             str: Generated summary
         """
+
+        if desired_response_size != self.desired_response_size:
+            self.prompt_constructor.set_special_command(
+                SummarizerOllamaLLM._get_default_summarization_prompt(desired_response_size))
+
         # Generate prompt using the prompt constructor with optional num_turns override
         prompt = self.prompt_constructor.construct_prompt(
             player_input="[Generate summary]",
@@ -60,7 +67,7 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
         options = {
             "temperature": temperature,
             "seed": seed,
-            "num_predict": desired_response_size * 2  # Rough estimate
+            "num_predict": desired_response_size * 4  # Rough estimate
         }
 
         # Make the request
@@ -95,6 +102,11 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
         Yields:
             str: Stream of summary tokens
         """
+
+        if desired_response_size != self.desired_response_size:
+            self.prompt_constructor.set_special_command(
+                SummarizerOllamaLLM._get_default_summarization_prompt(desired_response_size))
+
         # Generate prompt using the prompt constructor with optional num_turns override
         prompt = self.prompt_constructor.construct_prompt(
             player_input="[Generate summary]",
@@ -105,7 +117,7 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
         options = {
             "temperature": temperature,
             "seed": seed,
-            "num_predict": desired_response_size * 2  # Rough estimate
+            "num_predict": desired_response_size * 4  # Rough estimate
         }
 
         # Make streaming request
@@ -151,17 +163,21 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
         return text
 
     @staticmethod
-    def _get_default_summarization_prompt() -> str:
+    def _get_default_summarization_prompt(desired_response_size: int = 250) -> str:
         """
         Get the default summarization prompt (from original Summarizer).
 
         Returns:
             str: Default summarization prompt
         """
-        return """You are an expert summarizer for fantasy adventure logs. 
-    Create a summary of about 100 words from the following adventure log (Number of words is important!). Create as memory of 
+        return f"""You are an expert summarizer for fantasy adventure logs. 
+    Create a summary of about {desired_response_size} words from the following adventure log 
+    (Number of words is important!), 
+    but do noy generate too short memory either, it is important for it to contain enough relevant information. 
+    Create as memory of 
     adventure flow for Dungeon Master. DM's response marked with 'DM:', player actions and speech marked with 
-    'Player:', player speech is in "", player commands for DM is in ## - ignore them, player actions in plain text. There is only one player. 
+    'Player:', player speech is in "", player commands for DM is in ## - ignore them, player actions in plain text. 
+    There is only one player. 
 
     Focus on:
     1. Key events and plot developments
@@ -172,7 +188,9 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
     6. Dialogs
 
     DO NOT GENERATE NEW FACTS OR INFORMATION, ONLY SUM UP MENTIONED INFORMATION!
-    Mention player as 'player', not 'you'.
+    DO NOT GENERATE LISTS, WRITE IN PARAGRAPHS!
+    Mention player as 'player', not 'you'. 
+    In following text player usually addressed as 'you', but in memory address him as 'player'
 
     Write in a concise, narrative style. Maintain chronological order.
 
@@ -188,14 +206,13 @@ if __name__ == "__main__":
 
     prompt_constructor = LastNTurnsPromptConstructor(
         adventure_logger=logger,
-        num_turns=4
+        num_turns=6
     )
 
     # Create Summarizer LLM
     summarizer = SummarizerOllamaLLM(
-        model="mistral:7b-instruct-v0.3-q4_0",
-        prompt_constructor=prompt_constructor
-    )
+        model="llama3.1:8b-instruct-q4_K_M",
+        prompt_constructor=prompt_constructor)
 
     # prompt print
     print(prompt_constructor.construct_prompt())
@@ -207,9 +224,9 @@ if __name__ == "__main__":
     print("\n\nStreaming summary:")
     print("=" * 50)
     for token in summarizer.generate_stream(
-            desired_response_size=150,
+            desired_response_size=250,
             temperature=0.3,
-            seed=42
+            seed=44
     ):
         print(token, end="", flush=True)
     print("\n" + "=" * 50)

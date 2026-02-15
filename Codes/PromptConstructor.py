@@ -1,12 +1,12 @@
 import json
 import os
-from SettingDataLoaders.FaissVectorDB import FAISSVectorDB
+from FaissVectorDB import FAISSVectorDB
 from AdventureLogger import AdventureLogger
 from typing import Optional, List, Dict, Any
 
 
 class PromptConstructor:
-    def __init__(self, adventure_logger, vector_db, config_path="./SettingRawDataJSON/vanilla_fantasy/PromptCore.json"):
+    def __init__(self, adventure_logger, vector_db, config_path="../SettingRawDataJSON/vanilla_fantasy/PromptCore.json"):
         """
         Initialize PromptConstructor with database instances and configuration.
 
@@ -207,20 +207,6 @@ class PromptConstructor:
                 relevant_info = []
                 for i, result in enumerate(relevant_info_results, 1):
                     info_text = result.get('text', '')
-                    metadata = result.get('metadata', {})
-
-                    # Add metadata context
-                    if metadata:
-                        context_parts = []
-                        if 'type' in metadata:
-                            context_parts.append(f"Type: {metadata['type']}")
-                        if 'location' in metadata:
-                            context_parts.append(f"Location: {metadata['location']}")
-                        if 'character' in metadata:
-                            context_parts.append(f"Character: {metadata['character']}")
-
-                        if context_parts:
-                            info_text = f"[{', '.join(context_parts)}]\n{info_text}"
 
                     relevant_info.append(f"{i}. {info_text}")
 
@@ -371,7 +357,7 @@ class PromptConstructor:
 
 if __name__ == "__main__":
     # Test the simplified PromptConstructor
-    vector_db = FAISSVectorDB("vanilla_fantasy", "D:/Work/PROJECTS/DEEPSEEK_Local/pythonProject1/adventure_memories")
+    vector_db = FAISSVectorDB("vanilla_fantasy", "../adventure_memories")
     sql_db = AdventureLogger()
     prompt_constructor = PromptConstructor(sql_db, vector_db)
 

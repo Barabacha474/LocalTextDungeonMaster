@@ -8,7 +8,11 @@ class AdventureLogger:
     """
     SQLite-based logger for adventure turns.
     Each adventure gets its own database file.
-    Now with sequential IDs that always match document position.
+    Now with:
+      - sql_id: immutable autoincrement primary key
+      - turn_id: logical turn number (contiguous, renumbered on delete)
+      - seed: integer seed used for generation
+      - roles: Narrator, Adventure planner, Player
     """
 
     def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = "../adventure_logs"):
@@ -36,9 +40,7 @@ class AdventureLogger:
 
     def _sanitize_filename(self, name: str) -> str:
         """Convert adventure name to safe filename."""
-        # Replace unsafe characters with underscores
         safe = "".join(c if c.isalnum() or c in " _-" else "_" for c in name)
-        # Remove multiple underscores
         safe = "_".join(filter(None, safe.split("_")))
         return safe
 
@@ -47,221 +49,313 @@ class AdventureLogger:
         self.conn = sqlite3.connect(self.db_path)
         self.cursor = self.conn.cursor()
 
-        # Create turns table without autoincrement
+        # Create turns table with both sql_id (immutable) and turn_id (logical)
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS turns (
-                id INTEGER PRIMARY KEY,
-                role TEXT NOT NULL CHECK(role IN ('DM', 'Player')),
+                sql_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                turn_id INTEGER NOT NULL,
+                role TEXT NOT NULL,
                 content TEXT NOT NULL,
+                model_name TEXT,
+                seed INTEGER,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
-        # Create index for faster retrieval by id
-        self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_turn_id ON turns(id)")
+        # Create indexes for fast retrieval
+        self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_turn_id ON turns(turn_id)")
+        self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_sql_id ON turns(sql_id)")
 
         self.conn.commit()
 
-    def _get_next_id(self) -> int:
-        """Calculate the next ID based on current document count."""
-        self.cursor.execute("SELECT COUNT(*) FROM turns")
-        count = self.cursor.fetchone()[0]
-        return count + 1
-
-    def _reorder_ids_after_delete(self, deleted_id: int):
+    def _reorder_turn_ids_after_delete(self, deleted_turn_id: int):
         """
-        Reorder IDs after deletion so they remain sequential.
-        This decrements IDs of all documents with ID > deleted_id.
+        After deleting a turn, decrement all turn_ids that were greater than it,
+        so they remain contiguous.
         """
-        # SQLite UPDATE doesn't support ORDER BY, but we don't need it
-        # We just need to decrement IDs of all rows with higher IDs
         self.cursor.execute(
-            "UPDATE turns SET id = id - 1 WHERE id > ?",
-            (deleted_id,)
+            "UPDATE turns SET turn_id = turn_id - 1 WHERE turn_id > ?",
+            (deleted_turn_id,)
         )
         self.conn.commit()
 
-    def write(self, role: str, content: str) -> int:
+    def write(self, turn_id: int, role: str, content: str, model_name: Optional[str] = None, seed: Optional[int] = None) -> int:
         """
         Write a new turn to the database.
 
         Args:
-            role: 'DM' or 'Player'
+            turn_id: id of internal adventure turn
+            role: One of 'Narrator', 'Adventure planner', 'Player' (or custom)
             content: Text content of the turn
+            model_name: name of the model used for generation
+            seed: Optional integer seed used for generation
 
         Returns:
-            int: The ID of the inserted turn
+            int: The new logical turn_id (sequential)
         """
-        if role not in ['DM', 'Player']:
-            raise ValueError("Role must be 'DM' or 'Player'")
-
-        # Calculate next ID (count + 1)
-        new_id = self._get_next_id()
+        # Validate role if desired (optional)
+        # if role not in ['Narrator', 'Adventure planner', 'Player', 'DM']:
+        #     raise ValueError(f"Unknown role: {role}")
 
         self.cursor.execute(
-            "INSERT INTO turns (id, role, content) VALUES (?, ?, ?)",
-            (new_id, role, content)
+            "INSERT INTO turns (turn_id, role, content, model_name, seed) VALUES (?, ?, ?, ?, ?)",
+            (turn_id, role, content, model_name, seed)
         )
         self.conn.commit()
 
-        return new_id
+        return turn_id
 
-    def read(self, turn_id: int) -> Optional[Dict[str, Any]]:
+    def read_by_turn_id(self, turn_id: int) -> Optional[Dict[str, Any]]:
         """
-        Read a specific turn by ID.
+        Read a specific turn by its logical turn_id.
 
         Args:
-            turn_id: ID of the turn to read
+            turn_id: logical turn number
 
         Returns:
             dict with turn data or None if not found
         """
         self.cursor.execute(
-            "SELECT id, role, content, timestamp FROM turns WHERE id = ?",
+            "SELECT sql_id, turn_id, role, content, seed, timestamp FROM turns WHERE turn_id = ?",
             (turn_id,)
         )
-
         row = self.cursor.fetchone()
         if row:
             return {
-                'id': row[0],
-                'role': row[1],
-                'content': row[2],
-                'timestamp': row[3]
+                'sql_id': row[0],
+                'turn_id': row[1],
+                'role': row[2],
+                'content': row[3],
+                'seed': row[4],
+                'timestamp': row[5]
             }
         return None
 
-    def update(self, turn_id: int, content: str) -> bool:
+    def read_by_sql_id(self, sql_id: int) -> Optional[Dict[str, Any]]:
         """
-        Update the content of a specific turn.
+        Read a specific turn by its immutable sql_id.
 
         Args:
-            turn_id: ID of the turn to update
+            sql_id: autoincrement primary key
+
+        Returns:
+            dict with turn data or None if not found
+        """
+        self.cursor.execute(
+            "SELECT sql_id, turn_id, role, content, seed, timestamp FROM turns WHERE sql_id = ?",
+            (sql_id,)
+        )
+        row = self.cursor.fetchone()
+        if row:
+            return {
+                'sql_id': row[0],
+                'turn_id': row[1],
+                'role': row[2],
+                'content': row[3],
+                'seed': row[4],
+                'timestamp': row[5]
+            }
+        return None
+
+    # Alias for backward compatibility
+    def read(self, turn_id: int) -> Optional[Dict[str, Any]]:
+        """Alias for read_by_turn_id."""
+        return self.read_by_turn_id(turn_id)
+
+    def update_by_turn_id(self, turn_id: int, content: str, seed: Optional[int] = None) -> bool:
+        """
+        Update the content and optionally seed of a specific turn (by turn_id).
+
+        Args:
+            turn_id: logical turn number
             content: New content
+            seed: Optional new seed (if None, seed is not updated)
 
         Returns:
             bool: True if update successful, False if turn not found
         """
-        self.cursor.execute(
-            "UPDATE turns SET content = ? WHERE id = ?",
-            (content, turn_id)
-        )
+        if seed is not None:
+            self.cursor.execute(
+                "UPDATE turns SET content = ?, seed = ? WHERE turn_id = ?",
+                (content, seed, turn_id)
+            )
+        else:
+            self.cursor.execute(
+                "UPDATE turns SET content = ? WHERE turn_id = ?",
+                (content, turn_id)
+            )
         self.conn.commit()
-
         return self.cursor.rowcount > 0
 
-    def delete(self, turn_id: int) -> bool:
+    def update_by_sql_id(self, sql_id: int, content: str, seed: Optional[int] = None) -> bool:
         """
-        Delete a specific turn and reorder remaining IDs.
+        Update a turn by its immutable sql_id.
+        """
+        if seed is not None:
+            self.cursor.execute(
+                "UPDATE turns SET content = ?, seed = ? WHERE sql_id = ?",
+                (content, seed, sql_id)
+            )
+        else:
+            self.cursor.execute(
+                "UPDATE turns SET content = ? WHERE sql_id = ?",
+                (content, sql_id)
+            )
+        self.conn.commit()
+        return self.cursor.rowcount > 0
+
+    def delete_by_turn_id(self, turn_id: int) -> bool:
+        """
+        Delete a specific turn by its logical turn_id and renumber later turns.
 
         Args:
-            turn_id: ID of the turn to delete
+            turn_id: logical turn number to delete
 
         Returns:
             bool: True if deletion successful, False if turn not found
         """
-        # First check if the turn exists
-        self.cursor.execute("SELECT COUNT(*) FROM turns WHERE id = ?", (turn_id,))
+        # Check existence
+        self.cursor.execute("SELECT COUNT(*) FROM turns WHERE turn_id = ?", (turn_id,))
         if self.cursor.fetchone()[0] == 0:
             return False
 
-        # Get the total count before deletion
         total_before = self.get_turn_count()
 
         # Delete the turn
-        self.cursor.execute("DELETE FROM turns WHERE id = ?", (turn_id,))
+        self.cursor.execute("DELETE FROM turns WHERE turn_id = ?", (turn_id,))
 
-        # Check if we're deleting the last turn (no need to reorder)
+        # Renumber later turns if we didn't delete the last one
         if turn_id != total_before:
-            # Reorder IDs of turns that come after
-            self._reorder_ids_after_delete(turn_id)
+            self._reorder_turn_ids_after_delete(turn_id)
 
         self.conn.commit()
-
         return True
+
+    def delete_by_sql_id(self, sql_id: int) -> bool:
+        """
+        Delete a turn by its immutable sql_id, then renumber logical turn_ids.
+
+        Args:
+            sql_id: immutable primary key
+
+        Returns:
+            bool: True if deletion successful, False if turn not found
+        """
+        # First get the turn_id of the row to delete
+        self.cursor.execute("SELECT turn_id FROM turns WHERE sql_id = ?", (sql_id,))
+        row = self.cursor.fetchone()
+        if not row:
+            return False
+        turn_id = row[0]
+
+        # Now delete by sql_id
+        self.cursor.execute("DELETE FROM turns WHERE sql_id = ?", (sql_id,))
+
+        # Renumber later turns
+        total_before = self.get_turn_count() + 1  # before deletion count
+        if turn_id != total_before:
+            self._reorder_turn_ids_after_delete(turn_id)
+
+        self.conn.commit()
+        return True
+
+    # Keep old delete method for compatibility (uses turn_id)
+    def delete(self, turn_id: int) -> bool:
+        """Alias for delete_by_turn_id."""
+        return self.delete_by_turn_id(turn_id)
 
     def get_last_n_turns(self, n: int) -> List[Dict[str, Any]]:
         """
-        Get the last N turns from the database.
+        Get all documents for the last N distinct turn IDs from the database,
+        ordered by turn_id ascending.
 
         Args:
-            n: Number of turns to retrieve
+            n: Number of distinct turn IDs to retrieve
 
         Returns:
-            List of turn dictionaries, ordered by turn ID (ascending)
+            List of turn dictionaries, each containing both ids.
         """
-        query = """
-            SELECT id, role, content, timestamp 
-            FROM turns 
-            ORDER BY id DESC 
-            LIMIT ?
-        """
+        # Get the maximum turn_id
+        max_turn = self.get_turn_count()
+        if max_turn == 0:
+            return []
 
-        self.cursor.execute(query, (n,))
+        start_turn = max(1, max_turn - (n - 1))
+
+        query = """
+            SELECT sql_id, turn_id, role, content, seed, timestamp 
+            FROM turns 
+            WHERE turn_id >= ? AND turn_id <= ?
+            ORDER BY turn_id ASC
+        """
+        self.cursor.execute(query, (start_turn, max_turn))
         rows = self.cursor.fetchall()
 
-        # Convert to list of dictionaries
-        turns = []
-        for row in reversed(rows):  # Reverse to get chronological order
-            turns.append({
-                'id': row[0],
-                'role': row[1],
-                'content': row[2],
-                'timestamp': row[3]
-            })
+        return [
+            {
+                'sql_id': row[0],
+                'turn_id': row[1],
+                'role': row[2],
+                'content': row[3],
+                'seed': row[4],
+                'timestamp': row[5]
+            }
+            for row in rows
+        ]
 
-        return turns
-
-    def get_turns_range(self, start_id: int, end_id: int) -> List[Dict[str, Any]]:
+    def get_turns_range(self, start_turn_id: int, end_turn_id: int) -> List[Dict[str, Any]]:
         """
-        Get turns within a specific ID range (inclusive).
+        Get turns within a specific turn_id range (inclusive).
 
         Args:
-            start_id: Starting turn ID
-            end_id: Ending turn ID
+            start_turn_id: Starting logical turn ID
+            end_turn_id: Ending logical turn ID
 
         Returns:
             List of turn dictionaries
         """
         self.cursor.execute(
             """
-            SELECT id, role, content, timestamp 
+            SELECT sql_id, turn_id, role, content, seed, timestamp 
             FROM turns 
-            WHERE id >= ? AND id <= ?
-            ORDER BY id ASC
+            WHERE turn_id >= ? AND turn_id <= ?
+            ORDER BY turn_id ASC
             """,
-            (start_id, end_id)
+            (start_turn_id, end_turn_id)
         )
-
         rows = self.cursor.fetchall()
         return [
             {
-                'id': row[0],
-                'role': row[1],
-                'content': row[2],
-                'timestamp': row[3]
+                'sql_id': row[0],
+                'turn_id': row[1],
+                'role': row[2],
+                'content': row[3],
+                'seed': row[4],
+                'timestamp': row[5]
             }
             for row in rows
         ]
 
     def get_turn_count(self) -> int:
-        """Get total number of turns in the database."""
-        self.cursor.execute("SELECT COUNT(*) FROM turns")
-        return self.cursor.fetchone()[0]
+        """Get the highest turn number (max turn_id) in the database."""
+        self.cursor.execute("SELECT MAX(turn_id) FROM turns")
+        max_turn = self.cursor.fetchone()[0]
+        return max_turn if max_turn is not None else 0
 
     def get_latest_turn(self) -> Optional[Dict[str, Any]]:
-        """Get the most recent turn."""
+        """Get the most recent turn (highest turn_id)."""
         self.cursor.execute(
-            "SELECT id, role, content, timestamp FROM turns ORDER BY id DESC LIMIT 1"
+            "SELECT sql_id, turn_id, role, content, seed, timestamp FROM turns ORDER BY turn_id DESC LIMIT 1"
         )
         row = self.cursor.fetchone()
-
         if row:
             return {
-                'id': row[0],
-                'role': row[1],
-                'content': row[2],
-                'timestamp': row[3]
+                'sql_id': row[0],
+                'turn_id': row[1],
+                'role': row[2],
+                'content': row[3],
+                'seed': row[4],
+                'timestamp': row[5]
             }
         return None
 
@@ -278,22 +372,23 @@ class AdventureLogger:
         """
         self.cursor.execute(
             """
-            SELECT id, role, content, timestamp 
+            SELECT sql_id, turn_id, role, content, seed, timestamp 
             FROM turns 
             WHERE content LIKE ? 
-            ORDER BY id DESC 
+            ORDER BY turn_id DESC 
             LIMIT ?
             """,
             (f"%{keyword}%", limit)
         )
-
         rows = self.cursor.fetchall()
         return [
             {
-                'id': row[0],
-                'role': row[1],
-                'content': row[2],
-                'timestamp': row[3]
+                'sql_id': row[0],
+                'turn_id': row[1],
+                'role': row[2],
+                'content': row[3],
+                'seed': row[4],
+                'timestamp': row[5]
             }
             for row in rows
         ]
@@ -306,7 +401,6 @@ class AdventureLogger:
     def delete_database(self):
         """Delete the entire database file."""
         self.close()
-
         if self.db_path.exists():
             os.remove(self.db_path)
             return True
@@ -320,79 +414,17 @@ class AdventureLogger:
             self.cursor = None
 
     def __enter__(self):
-        """Context manager entry."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit - close connection."""
         self.close()
 
     def __del__(self):
-        """Destructor - ensure connection is closed."""
         self.close()
 
     @classmethod
     def list_adventures(cls, storage_path: str = "../adventure_logs") -> List[str]:
-        """
-        List all adventure databases in the storage directory.
-
-        Args:
-            storage_path: Directory to search
-
-        Returns:
-            List of adventure names (without .db extension)
-        """
         path = Path(storage_path)
         if not path.exists():
             return []
-
-        adventures = []
-        for file in path.glob("*.db"):
-            adventures.append(file.stem)
-
-        return adventures
-
-
-# Example usage demonstrating the new ID behavior
-if __name__ == "__main__":
-    # Create/connect to an adventure log
-    logger = AdventureLogger("Sequential Test")
-
-    # Clear any existing data
-    logger.clear_all_turns()
-
-    # Write some turns
-    print("=== Initial insertions ===")
-    turn1_id = logger.write("DM", "First message")
-    turn2_id = logger.write("Player", "Second message")
-    turn3_id = logger.write("DM", "Third message")
-    turn4_id = logger.write("Player", "Fourth message")
-
-    print(f"Turn IDs: {turn1_id}, {turn2_id}, {turn3_id}, {turn4_id}")
-
-    # Show all turns
-    all_turns = logger.get_turns_range(1, logger.get_turn_count())
-    for turn in all_turns:
-        print(f"ID {turn['id']}: {turn['content']}")
-
-    # Delete turn with ID 2
-    print("\n=== Deleting turn with ID 2 ===")
-    logger.delete(2)
-
-    # Show remaining turns (IDs should be 1, 2, 3)
-    all_turns = logger.get_turns_range(1, logger.get_turn_count())
-    for turn in all_turns:
-        print(f"ID {turn['id']}: {turn['content']}")
-
-    # Add a new turn - should get ID 4 (3 existing + 1)
-    print("\n=== Adding new turn after deletion ===")
-    new_turn_id = logger.write("DM", "Fifth message (new)")
-    print(f"New turn ID: {new_turn_id}")
-
-    # Show all turns (IDs should be 1, 2, 3, 4)
-    all_turns = logger.get_turns_range(1, logger.get_turn_count())
-    for turn in all_turns:
-        print(f"ID {turn['id']}: {turn['content']}")
-
-    # Close connection
-    logger.close()
+        return [file.stem for file in path.glob("*.db")]

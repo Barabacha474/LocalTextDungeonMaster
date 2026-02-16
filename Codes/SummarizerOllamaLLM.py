@@ -14,7 +14,7 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
             self,
             model: str,
             prompt_constructor: LastNTurnsPromptConstructor,
-            desired_response_size: int = 250
+            desired_response_size_in_sentences: int = 20,
     ):
         """
         Initialize the Summarizer Ollama LLM.
@@ -30,15 +30,16 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
         )
 
         self.prompt_constructor = prompt_constructor
-        self.prompt_constructor.set_special_command(SummarizerOllamaLLM._get_default_summarization_prompt(desired_response_size))
-        self.desired_response_size = desired_response_size
+        self.prompt_constructor.set_special_command(SummarizerOllamaLLM._get_default_summarization_prompt(desired_response_size_in_sentences))
+        self.desired_response_size_in_sentences = desired_response_size_in_sentences
 
     def generate(
             self,
             num_turns: int = None,
-            desired_response_size: int = 100,
+            desired_response_size_in_sentences: int = 20,
             temperature: float = 0.2,
-            seed: int = 42
+            seed: int = 42,
+            max_context_length: int = 6144
     ) -> str:
         """
         Generate a summary of recent turns.
@@ -53,9 +54,9 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
             str: Generated summary
         """
 
-        if desired_response_size != self.desired_response_size:
+        if desired_response_size_in_sentences != self.desired_response_size_in_sentences:
             self.prompt_constructor.set_special_command(
-                SummarizerOllamaLLM._get_default_summarization_prompt(desired_response_size))
+                SummarizerOllamaLLM._get_default_summarization_prompt(desired_response_size_in_sentences))
 
         # Generate prompt using the prompt constructor with optional num_turns override
         prompt = self.prompt_constructor.construct_prompt(
@@ -67,7 +68,8 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
         options = {
             "temperature": temperature,
             "seed": seed,
-            "num_predict": desired_response_size * 4  # Rough estimate
+            "num_predict": desired_response_size_in_sentences * 20,  # Rough estimate
+            "num_ctx": max_context_length
         }
 
         # Make the request
@@ -86,16 +88,17 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
     def generate_stream(
             self,
             num_turns: int = None,
-            desired_response_size: int = 100,
+            desired_response_size_in_sentences: int = 20,
             temperature: float = 0.2,
-            seed: int = 42
+            seed: int = 42,
+            max_context_length: int = 8192
     ) -> Iterator[str]:
         """
         Generate a streaming summary of recent turns.
 
         Args:
             num_turns: Number of turns to summarize (overrides prompt constructor default)
-            desired_response_size: Target word count for summary
+            desired_response_size_in_sentences: Target word count for summary
             temperature: Generation temperature
             seed: Random seed for consistent generation
 
@@ -103,9 +106,9 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
             str: Stream of summary tokens
         """
 
-        if desired_response_size != self.desired_response_size:
+        if desired_response_size_in_sentences != self.desired_response_size_in_sentences:
             self.prompt_constructor.set_special_command(
-                SummarizerOllamaLLM._get_default_summarization_prompt(desired_response_size))
+                SummarizerOllamaLLM._get_default_summarization_prompt(desired_response_size_in_sentences))
 
         # Generate prompt using the prompt constructor with optional num_turns override
         prompt = self.prompt_constructor.construct_prompt(
@@ -113,11 +116,14 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
             num_turns=num_turns
         )
 
+        print(f"Generation Prompt:\n{prompt}")
+
         # Add summarization-specific options
         options = {
             "temperature": temperature,
             "seed": seed,
-            "num_predict": desired_response_size * 4  # Rough estimate
+            "num_predict": desired_response_size_in_sentences * 20,  # Rough estimate
+            "num_ctx": max_context_length
         }
 
         # Make streaming request
@@ -163,7 +169,7 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
         return text
 
     @staticmethod
-    def _get_default_summarization_prompt(desired_response_size: int = 250) -> str:
+    def _get_default_summarization_prompt(desired_response_size_in_sentences: int = 20) -> str:
         """
         Get the default summarization prompt (from original Summarizer).
 
@@ -171,12 +177,12 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
             str: Default summarization prompt
         """
         return f"""You are an expert summarizer for fantasy adventure logs. 
-    Create a summary of about {desired_response_size} words from the following adventure log 
+    Create a summary of about {desired_response_size_in_sentences} sentences from the following adventure log 
     (Number of words is important!), 
     but do noy generate too short memory either, it is important for it to contain enough relevant information. 
     Create as memory of 
-    adventure flow for Dungeon Master. DM's response marked with 'DM:', player actions and speech marked with 
-    'Player:', player speech is in "", player commands for DM is in ## - ignore them, player actions in plain text. 
+    adventure flow for Dungeon Master. Narrator's response marked with 'Narrator:', player actions and speech marked with 
+    'Player:', player speech is in "", player commands for Narrator is in ## - ignore them, player actions in plain text. 
     There is only one player. 
 
     Focus on:
@@ -224,7 +230,7 @@ if __name__ == "__main__":
     print("\n\nStreaming summary:")
     print("=" * 50)
     for token in summarizer.generate_stream(
-            desired_response_size=250,
+            desired_response_size_in_sentences=20,
             temperature=0.3,
             seed=44
     ):

@@ -395,11 +395,8 @@ class FAISSVectorDB:
 
         # Collect results
         results = []
-        print("MESSAGE FROM VECTOR DB SEARCH (single query)")
-        print(f"threshold: {threshold}\n")
 
         for distance, idx in zip(distances[0], indices[0]):
-            print(f"distance: {distance}\n")
             if idx != -1 and distance >= threshold:
                 if idx < len(self.documents):
                     doc = self.documents[idx]
@@ -912,6 +909,7 @@ if __name__ == "__main__":
                 success = db.delete([doc_id])
                 if success:
                     print(f"Deleted document {doc_id}")
+                    db.save()
                 else:
                     print(f"Failed to delete document {doc_id}")
 

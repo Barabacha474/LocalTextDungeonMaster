@@ -82,7 +82,7 @@ class PromptConstructor:
             return user_input
 
     def _search_relevant_information(self, user_input: str, last_n_turns: int = 5,
-                                     k: int = 3, threshold: float = 0.1,
+                                     k_per_cascade: int = 3, number_of_cascades: int = 3, threshold: float = 0.1,
                                      chunk_size: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Search for relevant information in vector database with context from recent conversation.
@@ -105,9 +105,11 @@ class PromptConstructor:
             if search_query:
                 results = self.vector_db.search(
                     query=search_query,
-                    k=k,
+                    k_per_cascade=k_per_cascade,
+                    number_of_cascades=number_of_cascades,
                     threshold=threshold,
-                    chunk_size=chunk_size
+                    chunk_size=chunk_size,
+                    debug=False
                 )
                 return results
             else:
@@ -143,8 +145,8 @@ class PromptConstructor:
             print(f"Error formatting conversation: {e}")
             return ""
 
-    def get_prompt(self, user_input: str = "", is_initial_prompt: bool = True,
-                   n_last_turns: int = 5, vector_search_k: int = 3,
+    def get_prompt(self, turn_id: int, user_input: str = "", is_initial_prompt: bool = True,
+                   n_last_turns: int = 5, vector_search_k_per_cascade: int = 3, number_of_cascades: int = 3,
                    vector_threshold: float = 0.1, chunk_size: Optional[int] = None) -> str:
         """
         Construct a SINGLE prompt string for use with ollama.generate.
@@ -154,7 +156,8 @@ class PromptConstructor:
             user_input (str): The player's current input/action
             is_initial_prompt (bool): Whether this is the first prompt of the session
             n_last_turns (int): Number of previous turns to include in prompt and vector search
-            vector_search_k (int): Number of relevant vector DB items to retrieve
+            vector_search_k_per_cascade (int): Number of relevant vector DB items to retrieve
+            number_of_cascades (int): defines number of cascade search and therefore depth of associativness of found information
             vector_threshold (float): Minimum similarity threshold for vector search
             chunk_size (Optional[int]): Chunk size for vector search
 
@@ -186,7 +189,7 @@ class PromptConstructor:
                 # Log the player opening text to SQL database if not already logged
                 if not self.has_logged_opening_text and self.adventure_logger:
                     try:
-                        self.adventure_logger.write('DM', player_opening_text)
+                        self.adventure_logger.write(turn_id=turn_id, role='Narrator', content=player_opening_text)
                         self.has_logged_opening_text = True
                         print(f"Logged player opening text to SQL database: {player_opening_text[:50]}...")
                     except Exception as e:
@@ -197,7 +200,8 @@ class PromptConstructor:
             relevant_info_results = self._search_relevant_information(
                 user_input=user_input,
                 last_n_turns=n_last_turns,  # Use same number of turns for context
-                k=vector_search_k,
+                k_per_cascade=vector_search_k_per_cascade,
+                number_of_cascades=number_of_cascades,
                 threshold=vector_threshold,
                 chunk_size=chunk_size
             )
@@ -219,7 +223,7 @@ class PromptConstructor:
             if formatted_conversation and not is_initial_prompt:
                 prompt_parts.append(f"RECENT CONVERSATION:{formatted_conversation}")
 
-        # Add the current user input and prompt for DM response
+        # Add the current user input and prompt for Narrator response
         if user_input:
             prompt_parts.append(f"PLAYER INPUT: {user_input}")
 
@@ -334,12 +338,12 @@ class PromptConstructor:
             print(f"Error updating vector DB: {e}")
             return None
 
-    def log_turn(self, role: str, content: str) -> Optional[int]:
+    def log_turn(self, turn_id: int, role: str, content: str) -> Optional[int]:
         """
         Helper method to log a turn to the adventure logger.
 
         Args:
-            role (str): 'Player' or 'DM' (use 'DM' for DM responses)
+            role (str): 'Player' or 'Narrator' (use 'Narrator' for Narrator responses)
             content (str): Content of the turn
 
         Returns:
@@ -347,9 +351,9 @@ class PromptConstructor:
         """
         try:
             if self.adventure_logger:
-                # Map 'DM' to 'DM' in AdventureLogger terms
-                logger_role = 'DM' if role == 'DM' else 'Player'
-                return self.adventure_logger.write(logger_role, content)
+                # Map 'Narrator' to 'Narrator' in AdventureLogger terms
+                logger_role = 'Narrator' if role == 'Narrator' else 'Player'
+                return self.adventure_logger.write(turn_id=turn_id, role=logger_role, content=content)
         except Exception as e:
             print(f"Error logging turn: {e}")
             return None

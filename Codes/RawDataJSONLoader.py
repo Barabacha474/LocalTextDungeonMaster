@@ -1,10 +1,9 @@
 import json
-import sys
 from pathlib import Path
-from typing import List, Dict, Any, Iterator, Optional
+from typing import List, Dict, Any, Iterator
 from datetime import datetime
 
-from FaissVectorDB import FAISSVectorDB
+from Codes.Databases.FaissVectorDB import FAISSVectorDB
 
 
 class UniversalAdventureLoader:
@@ -35,7 +34,7 @@ class UniversalAdventureLoader:
         # Recursively collect all .json files
         json_files = [
             f for f in self.raw_root.rglob("*.json")
-            if f.name != "PromptCore.json"
+            if f.name != "Aethelgard_TEST_PROMPT.json"
         ]
 
         if not json_files:
@@ -43,7 +42,7 @@ class UniversalAdventureLoader:
             return
 
         if self.debug:
-            print(f"🔍 DEBUG: Found {len(json_files)} JSON files:\n'PromptCore.json' is ALWAYS ignored.")
+            print(f"🔍 DEBUG: Found {len(json_files)} JSON files:\n'Aethelgard_TEST_PROMPT.json' is ALWAYS ignored.")
             for f in json_files:
                 rel_path = f.relative_to(self.raw_root.parent.parent)
                 print(f"   📄 {rel_path}")

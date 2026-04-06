@@ -1,6 +1,6 @@
 from typing import Iterator
-from AbstractOllamaLLM import AbstractOllamaLLM
-from LastNTurnsPromptConstructor import LastNTurnsPromptConstructor
+from Codes.AbstractClasses.AbstractOllamaLLM import AbstractOllamaLLM
+from Codes.LegacyCode.LastNTurnsPromptConstructor import LastNTurnsPromptConstructor
 import time
 
 
@@ -205,7 +205,7 @@ class SummarizerOllamaLLM(AbstractOllamaLLM):
 
 # Example usage
 if __name__ == "__main__":
-    from AdventureLogger import AdventureLogger
+    from Codes.Databases.AdventureLogger import AdventureLogger
 
     # Create AdventureLogger
     logger = AdventureLogger()

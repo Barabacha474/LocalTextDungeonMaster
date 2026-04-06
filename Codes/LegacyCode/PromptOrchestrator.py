@@ -1,14 +1,14 @@
 import json
 import os
-from FaissVectorDB import FAISSVectorDB
-from AdventureLogger import AdventureLogger
+from Codes.Databases.FaissVectorDB import FAISSVectorDB
+from Codes.Databases.AdventureLogger import AdventureLogger
 from typing import Optional, List, Dict, Any
 
 
-class PromptConstructor:
-    def __init__(self, adventure_logger, vector_db, config_path="../SettingRawDataJSON/vanilla_fantasy/PromptCore.json"):
+class PromptOrchestrator:
+    def __init__(self, adventure_logger, vector_db, config_path="../SettingRawDataJSON/vanilla_fantasy/Aethelgard_TEST_PROMPT.json"):
         """
-        Initialize PromptConstructor with database instances and configuration.
+        Initialize PromptOrchestrator with database instances and configuration.
 
         Args:
             adventure_logger (AdventureLogger): SQL logger instance
@@ -147,7 +147,7 @@ class PromptConstructor:
 
     def get_prompt(self, turn_id: int, user_input: str = "", is_initial_prompt: bool = True,
                    n_last_turns: int = 5, vector_search_k_per_cascade: int = 3, number_of_cascades: int = 3,
-                   vector_threshold: float = 0.1, chunk_size: Optional[int] = None) -> str:
+                   vector_threshold: float = 0.1, chunk_size: Optional[int] = None, use_planner_instructions: bool = False) -> str:
         """
         Construct a SINGLE prompt string for use with ollama.generate.
         Now includes relevant information and conversation history.
@@ -160,6 +160,7 @@ class PromptConstructor:
             number_of_cascades (int): defines number of cascade search and therefore depth of associativness of found information
             vector_threshold (float): Minimum similarity threshold for vector search
             chunk_size (Optional[int]): Chunk size for vector search
+            use_planner_instructions (bool): if set to false, generate prompt with narrator instructions, if set to rue - with planner instructions
 
         Returns:
             str: A single prompt string formatted for ollama.generate
@@ -167,9 +168,12 @@ class PromptConstructor:
         if not self.config:
             raise ValueError("No configuration loaded.")
 
-        # Start with role and instructions
+        # Start with role and narrator_instructions
         prompt_parts = []
-        prompt_parts.append(f"{self.config.get('role', '')}\n\n{self.config.get('instructions', '')}")
+        if use_planner_instructions:
+            prompt_parts.append(f"{self.config.get('planner_role', '')}\n\n{self.config.get('planner_instructions', '')}")
+        else:
+            prompt_parts.append(f"{self.config.get('narrator_role', '')}\n\n{self.config.get('narrator_instructions', '')}")
 
         # Always include setting
         setting_text = self.config.get('setting', '')
@@ -231,7 +235,11 @@ class PromptConstructor:
         if not user_input and self.config.get('continue_message'):
             prompt_parts.append(f"CONTINUE MESSAGE: {self.config.get('continue_message')}")
 
-        prompt_parts.append("Dungeon Master response:")
+
+        if use_planner_instructions:
+            prompt_parts.append("Planner response:")
+        else:
+            prompt_parts.append("Dungeon Master response:")
 
         # Join all parts
         prompt = "\n\n".join(prompt_parts)
@@ -246,14 +254,14 @@ class PromptConstructor:
             include_plot_start (bool): Whether to include plot_start information
 
         Returns:
-            dict: Dictionary with role, instructions, setting, and optionally plot_start
+            dict: Dictionary with role, narrator_instructions, setting, and optionally plot_start
         """
         if not self.config:
             raise ValueError("No configuration loaded.")
 
         result = {
             'role': self.config.get('role', ''),
-            'instructions': self.config.get('instructions', ''),
+            'narrator_instructions': self.config.get('narrator_instructions', ''),
             'setting': self.config.get('setting', '')
         }
 
@@ -264,7 +272,7 @@ class PromptConstructor:
 
     def get_system_prompt_only(self) -> str:
         """
-        Get just the system prompt portion (role + instructions).
+        Get just the system prompt portion (role + narrator_instructions).
 
         Returns:
             str: The system prompt
@@ -272,7 +280,7 @@ class PromptConstructor:
         if not self.config:
             raise ValueError("No configuration loaded.")
 
-        return f"{self.config.get('role', '')}\n\n{self.config.get('instructions', '')}".strip()
+        return f"{self.config.get('role', '')}\n\n{self.config.get('narrator_instructions', '')}".strip()
 
     def get_setting_summary(self) -> str:
         """
@@ -360,10 +368,10 @@ class PromptConstructor:
 
 
 if __name__ == "__main__":
-    # Test the simplified PromptConstructor
+    # Test the simplified PromptOrchestrator
     vector_db = FAISSVectorDB("vanilla_fantasy", "../adventure_memories")
     sql_db = AdventureLogger()
-    prompt_constructor = PromptConstructor(sql_db, vector_db)
+    prompt_constructor = PromptOrchestrator(sql_db, vector_db)
 
     print("=== Testing Combined Search ===")
     prompt = prompt_constructor.get_prompt(

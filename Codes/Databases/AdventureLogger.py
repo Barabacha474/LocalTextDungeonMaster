@@ -15,7 +15,7 @@ class AdventureLogger:
       - roles: Narrator, Adventure planner, Player
     """
 
-    def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = "../adventure_logs"):
+    def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = ".../adventure_logs"):
         """
         Initialize or connect to an adventure database.
 

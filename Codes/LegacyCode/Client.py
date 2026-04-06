@@ -1,11 +1,11 @@
 import ollama
 import time
 import random
-from PromptConstructor import PromptConstructor
-from FaissVectorDB import FAISSVectorDB
-from AdventureLogger import AdventureLogger
-from SummarizerOllamaLLM import SummarizerOllamaLLM
-from LastNTurnsPromptConstructor import LastNTurnsPromptConstructor
+from PromptOrchestrator import PromptOrchestrator
+from Codes.Databases.FaissVectorDB import FAISSVectorDB
+from Codes.Databases.AdventureLogger import AdventureLogger
+from Codes.LegacyCode.SummarizerOllamaLLM import SummarizerOllamaLLM
+from Codes.LegacyCode.LastNTurnsPromptConstructor import LastNTurnsPromptConstructor
 
 
 def main():
@@ -24,14 +24,14 @@ def main():
     print("Initializing vector database...")
     vector_db = FAISSVectorDB(
         adventure_name=adventure_name,
-        storage_path="../adventure_memories"
+        storage_path="../../adventure_memories"
     )
 
     # Initialize SQL database logger (updated to support seeds and turn_id)
     print("Initializing adventure logger...")
     sql_db = AdventureLogger(
         adventure_name=adventure_name,
-        storage_path="../adventure_logs"
+        storage_path="../../adventure_logs"
     )
 
     # Initialize Summarizer
@@ -52,15 +52,15 @@ def main():
     print(f"Existing turns in database: {existing_turns}")
     print(f"Is initial prompt: {is_initial_prompt}")
 
-    # Initialize the PromptConstructor with databases
-    constructor = PromptConstructor(
+    # Initialize the PromptOrchestrator with databases
+    orchestrator = PromptOrchestrator(
         adventure_logger=sql_db,
         vector_db=vector_db,
-        config_path="../SettingRawDataJSON/vanilla_fantasy/PromptCore.json"
+        config_path="../../SettingRawDataJSON/vanilla_fantasy/PromptCore.json"
     )
 
     # Special continue message
-    CONTINUE_MESSAGE = constructor.get_continue_message()
+    CONTINUE_MESSAGE = orchestrator.get_continue_message()
 
     # Optional: Warm up Ollama once at startup
     print("\n=== Warming up Ollama ===")
@@ -88,7 +88,7 @@ def main():
     if is_initial_prompt:
         print("OPENING TEXT")
         print("\n" + "*" * 60)
-        print(constructor.get_player_opening_text())
+        print(orchestrator.get_player_opening_text())
         print("*" * 60 + "\n")
     else:
         print("RECENT ACTIONS")
@@ -186,6 +186,8 @@ def main():
             random_seed = random.randint(1, 10000)
             print(f"Using random seed: {random_seed}")
 
+            turn_counter -= 1
+
         elif player_input.lower() == 'undo':
 
             # Get all entries for the last logical turn
@@ -243,7 +245,7 @@ def main():
             skip_player_logging = False
 
         # Get the prompt
-        prompt = constructor.get_prompt(
+        prompt = orchestrator.get_prompt(
             turn_id=turn_counter,
             user_input=player_input,
             is_initial_prompt=is_initial_prompt,

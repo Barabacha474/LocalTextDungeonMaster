@@ -1,0 +1,43 @@
+{
+    "engine": {
+        "show_planner": true,
+        "show_system_messages": true,
+        "use_planner": true
+    },
+
+    "narrator": {
+        "temperature": 0.6,
+        "num_predict": 800,
+        "auto_ctx": true,
+        "ctx_margin": 1.1,
+        "max_ctx": 8192,
+        "debug_info": true,
+        "debug_prompt": true
+    },
+
+    "planner": {
+        "temperature": 0.5,
+        "num_predict": 400,
+        "auto_ctx": true,
+        "ctx_margin": 1.1,
+        "max_ctx": 4096,
+        "debug_info": true,
+        "debug_prompt": true
+    },
+
+    "memory": {
+        "temperature": 0.2,
+        "num_predict": 800,
+        "num_turns": 6,
+        "debug_info": true,
+        "debug_prompt": true
+    },
+
+    "rag": {
+        "n_history": 5,
+        "k_per_cascade": 5,
+        "number_of_cascades": 2,
+        "threshold": 0.3,
+        "chunk_size": null
+    }
+}

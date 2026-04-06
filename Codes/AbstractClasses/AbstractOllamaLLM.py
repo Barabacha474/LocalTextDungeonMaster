@@ -76,81 +76,97 @@ class AbstractOllamaLLM(ABC):
         """
         pass
 
-    def _get_prompt(
-            self,
-            prompt: Optional[str],
-            prompt_kwargs: Optional[dict] = None
-    ) -> str:
-        """
-        Get the prompt to use for generation.
-
-        Args:
-            prompt: Optional explicit prompt string
-            prompt_kwargs: Keyword arguments for prompt generator
-
-        Returns:
-            str: The prompt to use
-
-        Raises:
-            ValueError: If no prompt can be determined
-        """
-        if prompt is not None:
+    def get_prompt(self, prompt=None, prompt_kwargs=None) -> str:
+        if prompt:
             return prompt
 
-        if self.prompt_constructor and prompt_kwargs is not None:
-            return self.prompt_constructor.generate_prompt(**prompt_kwargs)
+        if not self.prompt_constructor:
+            raise ValueError("No prompt or prompt_constructor provided.")
 
-        if self.default_prompt is not None:
-            return self.default_prompt
+        if not prompt_kwargs:
+            prompt_kwargs = {}
 
-        if self.prompt_constructor:
-            # Try with empty kwargs if prompt_constructor can handle it
-            return self.prompt_constructor.generate_prompt()
-
-        raise ValueError(
-            "No prompt provided and no default_prompt or valid prompt_constructor available"
-        )
+        return self.prompt_constructor.construct_prompt(**prompt_kwargs)
 
     def _make_generate_request(
             self,
             prompt: str,
             stream: bool = False,
+            keep_alive: str | int = "5m",
             **generation_kwargs
-    ) -> Any:
+    ):
         """
-        Make a generate request using the ollama library.
-        This is a helper method that concrete implementations can use.
-
-        Args:
-            prompt: The prompt to send
-            stream: Whether to stream the response
-            **generation_kwargs: Additional generation parameters
-
-        Returns:
-            For non-streaming: dict response from ollama
-            For streaming: generator yielding response chunks
-
-        Raises:
-            RuntimeError: If Ollama request fails
+        Sends request to Ollama with proper argument mapping.
+        Filters out unsupported custom arguments.
         """
-        try:
-            if stream:
-                # For streaming, return the generator directly
-                return ollama.generate(
-                    model=self.model,
-                    prompt=prompt,
-                    stream=stream,
-                    **generation_kwargs
-                )
+
+        # =========================================================
+        # SPLIT ARGS
+        # =========================================================
+
+        options = {}
+
+        allowed_options = {
+            "temperature",
+            "seed",
+            "num_predict",
+            "num_ctx",
+            "top_k",
+            "top_p",
+            "repeat_penalty",
+            "stop"
+        }
+
+        allowed_direct = {
+            "format",
+            "raw",
+            "system",
+            "template"
+        }
+
+        internal_keys = {
+            "auto_ctx",
+            "ctx_margin",
+            "max_ctx",
+            "debug_ctx",
+            "debug_info",
+            "debug_prompt"
+        }
+
+        clean_kwargs = {}
+
+        for key in list(generation_kwargs.keys()):
+            value = generation_kwargs[key]
+
+            if key in allowed_options:
+                options[key] = value
+
+            elif key in allowed_direct:
+                clean_kwargs[key] = value
+
+            elif key in internal_keys:
+                continue
+
             else:
-                # For non-streaming, return the complete response
-                response = ollama.generate(
-                    model=self.model,
-                    prompt=prompt,
-                    stream=stream,
-                    **generation_kwargs
-                )
-                return response
+                # print(f"[WARN] Unknown generation arg: {key}")
+                continue
+
+        # =========================================================
+        # REQUEST
+        # =========================================================
+
+        try:
+            response = ollama.generate(
+                model=self.model,
+                prompt=prompt,
+                stream=stream,
+                keep_alive=keep_alive,
+                options=options,
+                **clean_kwargs
+            )
+
+            return response
+
         except Exception as e:
             raise RuntimeError(f"Ollama request failed: {e}")
 

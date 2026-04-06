@@ -13,7 +13,7 @@ import re
 class FAISSVectorDB:
     """FAISS vector database for role-playing RAG system, per-adventure instance"""
 
-    def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = "../adventure_memories"):
+    def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = ".../adventure_memories"):
         """
         Initialize a vector database for a specific adventure.
 
@@ -573,6 +573,45 @@ class FAISSVectorDB:
             print(f"Error clearing database: {e}")
             return False
 
+    def delete_by_metadata(self, filter_metadata: Dict) -> List[int]:
+        """
+        Delete documents matching metadata filter.
+
+        Returns:
+            List of deleted document IDs
+        """
+        to_delete = []
+
+        for doc in self.documents:
+            meta = doc.get("metadata", {})
+            match = True
+
+            for key, value in filter_metadata.items():
+                if meta.get(key) != value:
+                    match = False
+                    break
+
+            if match:
+                to_delete.append(doc["id"])
+
+        if to_delete:
+            self.delete(to_delete)
+            self.save()
+
+        return to_delete
+
+    def delete_where(self, predicate):
+        """
+        Delete documents using custom condition function.
+        """
+        to_delete = [doc["id"] for doc in self.documents if predicate(doc)]
+
+        if to_delete:
+            self.delete(to_delete)
+            self.save()
+
+        return to_delete
+
     def delete_adventure(self) -> bool:
         """
         Delete the entire adventure database (all files).
@@ -735,7 +774,7 @@ if __name__ == "__main__":
 
     # Configuration
     DEFAULT_ADVENTURE = "vanilla_fantasy"
-    STORAGE_PATH = "../adventure_memories"
+    STORAGE_PATH = "../../adventure_memories"
 
     # Parse adventure name from command line (optional)
     adventure_name = DEFAULT_ADVENTURE

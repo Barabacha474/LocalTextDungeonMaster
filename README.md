@@ -59,7 +59,7 @@ You can use any compatible model available in Ollama.
 
 ### 3. Clone the repository
 
-git clone https://github.com/your-username/your-repo-name.git
+git clone https://github.com/Barabacha474/LocalTextDungeonMaster.git
 cd your-repo-name
 
 ---

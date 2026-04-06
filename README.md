@@ -71,9 +71,12 @@ codes/main.py
 
 Set the model names you want to use:
 
-NARRATOR_MODEL_NAME: str = "<your-model-name>"
-PLANNER_MODEL_NAME: str = "<your-model-name>"
-SUMMARIZER_MODEL_NAME: str = "<your-model-name>"
+NARRATOR_MODEL_NAME: str = "_your-model-name_"
+
+PLANNER_MODEL_NAME: str = "_your-model-name_"
+
+SUMMARIZER_MODEL_NAME: str = "_your-model-name_"
+
 
 ---
 

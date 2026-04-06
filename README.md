@@ -1,4 +1,4 @@
-#AI Adventure Engine (Local LLM-based Narrative System)
+# AI Adventure Engine (Local LLM-based Narrative System)
 
 An interactive adventure engine powered by local Large Language Models (LLMs).
 The system simulates a structured storytelling pipeline with multiple AI roles such as Planner, Narrator, and Summarizer, enabling dynamic, controllable, and extensible story generation.
@@ -7,7 +7,7 @@ This project is designed as a diploma-level system demonstrating multi-agent orc
 
 ---
 
-##Features
+## Features
 
 - Adventure planning system with structured progression logic (Can be disabled for better generation speed)
 - Command-based interaction for triggering generation steps
@@ -21,7 +21,7 @@ This project is designed as a diploma-level system demonstrating multi-agent orc
 
 ---
 
-##Requirements
+## Requirements
 
 - Python 3.10+
 - Ollama installed
@@ -29,9 +29,9 @@ This project is designed as a diploma-level system demonstrating multi-agent orc
 
 ---
 
-##Installation
+## Installation
 
-###1. Install Ollama
+### 1. Install Ollama
 
 Download and install Ollama from the official website:
 https://ollama.com/download
@@ -44,7 +44,7 @@ After installation, make sure Ollama is running.
 
 ---
 
-###2. Download a model
+### 2. Download a model
 
 Pull a model using the CLI:
 
@@ -57,14 +57,14 @@ You can use any compatible model available in Ollama.
 
 ---
 
-###3. Clone the repository
+### 3. Clone the repository
 
 git clone https://github.com/your-username/your-repo-name.git
 cd your-repo-name
 
 ---
 
-###4. Configure model names
+### 4. Configure model names
 
 Open:
 codes/main.py
@@ -77,7 +77,7 @@ SUMMARIZER_MODEL_NAME: str = "<your-model-name>"
 
 ---
 
-##Running the Project
+## Running the Project
 
 Run the main script:
 
@@ -87,7 +87,7 @@ The system will start generating an interactive adventure using your local LLM.
 
 ---
 
-##How It Works
+## How It Works
 
 The engine operates as a structured generation pipeline:
 
@@ -103,7 +103,7 @@ The engine operates as a structured generation pipeline:
 Other systems designed to collect, store and provide context for LLMs and logs for researchers.
 ---
 
-##Notes
+## Notes
 
 - Performance depends on your hardware (CPU/GPU and RAM)
 - Larger models produce better results but require more resources
@@ -113,7 +113,7 @@ Other systems designed to collect, store and provide context for LLMs and logs f
 
 ---
 
-##License
+## License
 
 MIT License
 

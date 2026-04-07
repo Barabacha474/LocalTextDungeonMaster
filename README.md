@@ -107,7 +107,7 @@ What adventure to run based on databases
 
 See configuration section at the top of the file.
 
-### 2. RawDataJSONLoader.py — Load a New Setting into the Database
+### 2. RawDataJSONLoader.py — Load a New Setting into new Database
 
 This script is used to preprocess and load raw setting data into the vector database.
 

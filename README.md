@@ -80,13 +80,91 @@ SUMMARIZER_MODEL_NAME: str = "_your-model-name_"
 
 ---
 
-## Running the Project
+## USAGE
 
-Run the main script:
+In addition to the main engine, the project includes several utility scripts located in the Codes/ directory. These scripts are intended for direct interaction with the system at the current stage of development.
+
+### 1. main.py — Run an Adventure
+
+This is the primary entry point of the system.
+
+Run:
 
 python codes/main.py
 
-The system will start generating an interactive adventure using your local LLM.
+It initializes the full pipeline:
+
+Loads the selected adventure setting
+Builds the generation engine (Planner, Narrator, Memory)
+Starts the console interface for interactive gameplay
+
+You can configure:
+
+Model names (Narrator / Planner / Summarizer)
+Memory intervals
+PromptCore and engine config paths
+What adventure to run based on databases
+
+See configuration section at the top of the file.
+
+### 2. RawDataJSONLoader.py — Load a New Setting into the Database
+
+This script is used to preprocess and load raw setting data into the vector database.
+
+Run:
+
+python codes/RawDataJSONLoader.py <adventure_name>
+
+Or without arguments (interactive mode).
+
+Requirements for input data
+
+Your setting must follow these rules:
+
+Located in:
+
+SettingRawDataJSON/<adventure_name>/
+Must contain:
+PromptCore.json (required)
+Multiple .json files with world data
+Recommended practices:
+Split large world information into multiple logical files
+Ensure each file contains a reasonable amount of text (not too small, not too large)
+Keep PromptCore.json structure unchanged (only content should be modified)
+Behavior
+Recursively scans all .json files
+Converts each record into searchable text
+Stores data in FAISS vector database
+Adds metadata automatically (source file, type, etc.)
+Supports batch insertion for performance
+
+You can use vanilla_fantasy setting as guideline
+
+### 3. DiagnosticsRunner.py — Run Tests and Verify System Health
+
+This script runs automated tests and provides a coverage report.
+
+Run:
+
+python codes/DiagnosticsRunner.py
+What it does
+
+Executes all tests from:
+
+Codes/Testers/
+
+Measures coverage for:
+
+Codes/Databases
+Outputs a report similar to:
+pytest Codes/Testers --cov=Codes/Databases --cov-report=term-missing
+Purpose
+Ensure database layer works correctly
+Detect regressions after changes
+Provide quick diagnostics before running the system
+Notes
+!Currently focused on database components only!
+Can be extended to cover other modules in future
 
 ---
 

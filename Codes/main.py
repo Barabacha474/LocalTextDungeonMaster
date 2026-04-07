@@ -1,3 +1,5 @@
+import json
+
 from Codes.Orchestrators.AdventureContext import AdventureContext
 from Codes.Databases.AdventureLogger import AdventureLogger
 from Codes.Databases.FaissVectorDB import FAISSVectorDB
@@ -11,8 +13,6 @@ from Codes.LLMHandlers.SimpleOllamaLLM import SimpleOllamaLLM
 from Codes.PromptConstructors.NarratorPromptConstructor import NarratorPromptConstructor
 from Codes.PromptConstructors.PlannerPromptConstructor import PlannerPromptConstructor
 from Codes.Orchestrators.MemoryManager import MemoryManager
-
-from Codes.Testers.Narrator_Planner_GenerationTester import load_json, pick_role_and_instructions
 
 
 # =========================================================
@@ -124,6 +124,23 @@ def build_engine() -> AdventureEngine:
 
     return engine
 
+# =========================================================
+# HELPERS
+# =========================================================
+
+def load_json(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def pick_role_and_instructions(data: dict, use_planner: bool) -> tuple[str, str]:
+    if use_planner:
+        role = data.get("planner_role", "").strip()
+        instructions = data.get("planner_instructions", "").strip()
+    else:
+        role = data.get("narrator_role", "").strip()
+        instructions = data.get("narrator_instructions", "").strip()
+    return role, instructions
 
 # =========================================================
 # MAIN

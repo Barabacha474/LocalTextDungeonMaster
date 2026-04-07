@@ -5,7 +5,7 @@ from Codes.Databases.AdventureLogger import AdventureLogger
 from Codes.Databases.FaissVectorDB import FAISSVectorDB
 
 from Codes.Orchestrators.AdventureEngine import AdventureEngine
-from ConsoleInterface import ConsoleInterface
+from Codes.Interfaces.ConsoleInterface import ConsoleInterface
 
 from Codes.Orchestrators.GenerationUnit import GenerationUnit
 from Codes.LLMHandlers.SimpleOllamaLLM import SimpleOllamaLLM

@@ -66,8 +66,7 @@ cd your-repo-name
 
 ### 4. Configure model names
 
-Open:
-codes/main.py
+Open *codes/main.py*
 
 Set the model names you want to use:
 
@@ -88,24 +87,35 @@ In addition to the main engine, the project includes several utility scripts loc
 
 This is the primary entry point of the system.
 
-Run:
+
+#### How to Run
 
 python codes/main.py
 
 It initializes the full pipeline:
 
 Loads the selected adventure setting
+
 Builds the generation engine (Planner, Narrator, Memory)
+
 Starts the console interface for interactive gameplay
 
-You can configure:
 
-Model names (Narrator / Planner / Summarizer)
-Memory intervals
-PromptCore and engine config paths
-What adventure to run based on databases
+#### What You can configure
+
+In *main.py* you can manually set:
+
+* Model names (Narrator / Planner / Summarizer)
+
+* Memory intervals
+
+* PromptCore and engine config paths
+
+* What adventure to run based on databases
 
 See configuration section at the top of the file.
+
+Config file in *Configs/AdventureEngineConfig.json* contain a sensetive settings for internal systems.
 
 ### 2. RawDataJSONLoader.py — Load a New Setting into new Database
 
@@ -117,28 +127,43 @@ python codes/RawDataJSONLoader.py <adventure_name>
 
 Or without arguments (interactive mode).
 
-Requirements for input data
+
+#### Requirements for input data
+
 
 Your setting must follow these rules:
 
-Located in:
+Located in *SettingRawDataJSON/<adventure_name>/*
 
-SettingRawDataJSON/<adventure_name>/
+
 Must contain:
+
 PromptCore.json (required)
+
 Multiple .json files with world data
+
 Recommended practices:
+
 Split large world information into multiple logical files
+
 Ensure each file contains a reasonable amount of text (not too small, not too large)
+
 Keep PromptCore.json structure unchanged (only content should be modified)
-Behavior
+
+
+#### Behavior
+
 Recursively scans all .json files
+
 Converts each record into searchable text
+
 Stores data in FAISS vector database
+
 Adds metadata automatically (source file, type, etc.)
+
 Supports batch insertion for performance
 
-You can use vanilla_fantasy setting as guideline
+You can use *vanilla_fantasy* setting as guideline
 
 ### 3. DiagnosticsRunner.py — Run Tests and Verify System Health
 
@@ -147,23 +172,34 @@ This script runs automated tests and provides a coverage report.
 Run:
 
 python codes/DiagnosticsRunner.py
-What it does
 
-Executes all tests from:
 
-Codes/Testers/
+#### What it does
+
+Executes all tests from *Codes/Testers/*
+
 
 Measures coverage for:
 
-Codes/Databases
+*Codes/Databases*
+
 Outputs a report similar to:
+
 pytest Codes/Testers --cov=Codes/Databases --cov-report=term-missing
-Purpose
+
+#### Purpose
+
 Ensure database layer works correctly
+
 Detect regressions after changes
+
 Provide quick diagnostics before running the system
-Notes
+
+
+#### Notes
+
 !Currently focused on database components only!
+
 Can be extended to cover other modules in future
 
 ---

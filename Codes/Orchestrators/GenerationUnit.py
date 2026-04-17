@@ -1,5 +1,5 @@
 from typing import Optional, Iterator, Dict
-from AbstractOllamaLLM import AbstractOllamaLLM
+from Codes.AbstractClasses.AbstractOllamaLLM import AbstractOllamaLLM
 from Codes.Orchestrators.AdventureContext import AdventureContext
 
 

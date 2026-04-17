@@ -1,7 +1,7 @@
 from typing import Optional
 from GenerationUnit import GenerationUnit
-from LastNTurnsPromptConstructor import LastNTurnsPromptConstructor
-from SimpleOllamaLLM import SimpleOllamaLLM
+from Codes.PromptConstructors.LastNTurnsPromptConstructor import LastNTurnsPromptConstructor
+from Codes.LLMHandlers.SimpleOllamaLLM import SimpleOllamaLLM
 from AdventureContext import AdventureContext
 
 

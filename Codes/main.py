@@ -28,6 +28,10 @@ NARRATOR_MODEL_NAME: str = "cogito:8b-v1-preview-llama-q4_K_M"
 PLANNER_MODEL_NAME: str = "cogito:8b-v1-preview-llama-q4_K_M"
 SUMMARIZER_MODEL_NAME: str = "cogito:8b-v1-preview-llama-q4_K_M"
 
+# NARRATOR_MODEL_NAME: str = "qwen3:14b"
+# PLANNER_MODEL_NAME: str = "qwen3:14b"
+# SUMMARIZER_MODEL_NAME: str = "qwen3:14b"
+
 MEMORY_INTERVAL: int = 4
 GLOBAL_SUMMARY_INTERVAL: int = 12
 NARRATOR_VISIBLE_TURNS: int = 4
@@ -86,7 +90,7 @@ def build_engine() -> AdventureEngine:
     # PLANNER
     # =========================
     planner_prompt: PlannerPromptConstructor = PlannerPromptConstructor(
-        planner_instructions=planner_system_prompt
+        system_prompt=planner_system_prompt
     )
 
     planner_llm: SimpleOllamaLLM = SimpleOllamaLLM(

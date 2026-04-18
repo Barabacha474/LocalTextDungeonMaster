@@ -10,7 +10,6 @@ def run_tests(verbose: bool = False) -> int:
     """
     project_root = Path(__file__).parent.parent
 
-    # 🔥 ВАЖНО: перейти в корень проекта
     os.chdir(project_root)
 
     test_path = project_root / "Codes" / "Testers"

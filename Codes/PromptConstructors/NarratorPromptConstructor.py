@@ -45,6 +45,9 @@ class NarratorPromptConstructor(AbstractPromptConstructor):
 
         core_prompt: Optional[Dict[str, Any]] = kwargs.get("core_prompt")
         rag_config: Optional[Dict[str, Any]] = kwargs.get("rag_config")
+        use_few_shot = kwargs.get("use_few_shot_examples", False)
+
+        separator = "=" * 30
 
         parts: List[str] = []
 
@@ -52,6 +55,17 @@ class NarratorPromptConstructor(AbstractPromptConstructor):
         # SYSTEM / INSTRUCTIONS
         # =========================================================
         parts.append(self.system_prompt)
+        parts.append(separator)
+
+        # =========================================================
+        # FEW SHOT EXAMPLE (OPTIONAL)
+        # =========================================================
+
+        if use_few_shot and core_prompt:
+            example = core_prompt.get("narrator_few_shot_example")
+            if example:
+                parts.append(example)
+                parts.append(separator)
 
         # =========================================================
         # SETTING
@@ -60,6 +74,7 @@ class NarratorPromptConstructor(AbstractPromptConstructor):
             setting = core_prompt.get("setting", "")
             if setting:
                 parts.append(f"SETTING:\n{setting}")
+                parts.append(separator)
 
         # =========================================================
         # GLOBAL SUMMARY
@@ -68,6 +83,7 @@ class NarratorPromptConstructor(AbstractPromptConstructor):
             summary = context.get_latest_global_summary()
             if summary:
                 parts.append(f"GLOBAL STORY SUMMARY:\n{summary}")
+                parts.append(separator)
 
         # =========================================================
         # RAG (CONTEXT-AWARE)
@@ -76,6 +92,7 @@ class NarratorPromptConstructor(AbstractPromptConstructor):
             rag_block = self._build_rag_block(context, rag_config)
             if rag_block:
                 parts.append(rag_block)
+                parts.append(separator)
 
         # =========================================================
         # HISTORY (Player + Narrator only)
@@ -91,13 +108,14 @@ class NarratorPromptConstructor(AbstractPromptConstructor):
                 for t in history
             )
             parts.append(f"RECENT STORY:\n{history_text}")
+            parts.append(separator)
 
         # =========================================================
         # LAST PLANNER OUTPUT (previous turn only)
         # =========================================================
         turn_count = context.get_turn_count()
 
-        if turn_count > 1:
+        if turn_count > 0:
             planner_turn = context.get_turns_range(
                 start=turn_count,
                 end=turn_count,
@@ -107,6 +125,7 @@ class NarratorPromptConstructor(AbstractPromptConstructor):
             if planner_turn:
                 last_plan = planner_turn[-1]["content"]
                 parts.append(f"[PLANNER PLAN]\n{last_plan}")
+                parts.append(separator)
 
         # =========================================================
         # PLAYER INPUT
@@ -117,6 +136,7 @@ class NarratorPromptConstructor(AbstractPromptConstructor):
             parts.append(f"Player: {player_input}")
         else:
             parts.append("Player:")
+        parts.append(separator)
 
         # =========================================================
         # OUTPUT PREFIX

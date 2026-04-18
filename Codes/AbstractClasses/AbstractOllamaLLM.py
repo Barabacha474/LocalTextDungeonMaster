@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Iterator, Any
+from typing import Optional, Iterator
 import ollama
-from AbstractPromptConstructor import AbstractPromptConstructor
+from Codes.AbstractClasses.AbstractPromptConstructor import AbstractPromptConstructor
 
 
 class AbstractOllamaLLM(ABC):

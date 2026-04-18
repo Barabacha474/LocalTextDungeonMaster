@@ -1,7 +1,7 @@
 import sqlite3
 import os
 from pathlib import Path
-from typing import List, Tuple, Optional, Dict, Any
+from typing import List, Optional, Dict, Any
 
 
 class AdventureLogger:
@@ -15,7 +15,7 @@ class AdventureLogger:
       - roles: Narrator, Adventure planner, Player
     """
 
-    def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = ".../adventure_logs"):
+    def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = "../adventure_logs"):
         """
         Initialize or connect to an adventure database.
 
@@ -277,10 +277,10 @@ class AdventureLogger:
         """
         # Get the maximum turn_id
         max_turn = self.get_turn_count()
-        if max_turn == 0:
+        if max_turn < 0:
             return []
 
-        start_turn = max(1, max_turn - (n - 1))
+        start_turn = max(0, max_turn - (n - 1))
 
         query = """
             SELECT sql_id, turn_id, role, content, seed, timestamp 

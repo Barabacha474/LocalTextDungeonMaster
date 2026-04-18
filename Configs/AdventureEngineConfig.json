@@ -9,20 +9,21 @@
         "temperature": 0.6,
         "num_predict": 800,
         "auto_ctx": true,
-        "ctx_margin": 1.1,
-        "max_ctx": 8192,
+        "ctx_margin": 1.2,
+        "max_ctx": 32768,
         "debug_info": true,
-        "debug_prompt": true
+        "debug_prompt": true,
+        "use_few_shot_examples": false
     },
-
     "planner": {
         "temperature": 0.5,
-        "num_predict": 400,
+        "num_predict": 800,
         "auto_ctx": true,
-        "ctx_margin": 1.1,
-        "max_ctx": 4096,
+        "ctx_margin": 1.2,
+        "max_ctx": 32768,
         "debug_info": true,
-        "debug_prompt": true
+        "debug_prompt": true,
+        "use_few_shot_examples": false
     },
 
     "memory": {
@@ -32,12 +33,18 @@
         "debug_info": true,
         "debug_prompt": true
     },
-
-    "rag": {
-        "n_history": 5,
-        "k_per_cascade": 5,
+    "rag_narrator": {
+        "n_history": 3,
+        "k_per_cascade": 3,
         "number_of_cascades": 2,
-        "threshold": 0.3,
+        "threshold": 0.5,
+        "chunk_size": null
+    },
+    "rag_planner": {
+        "n_history": 5,
+        "k_per_cascade": 4,
+        "number_of_cascades": 2,
+        "threshold": 0.45,
         "chunk_size": null
     }
 }

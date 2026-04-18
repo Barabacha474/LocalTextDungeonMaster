@@ -34,7 +34,7 @@ class UniversalAdventureLoader:
         # Recursively collect all .json files
         json_files = [
             f for f in self.raw_root.rglob("*.json")
-            if f.name != "Aethelgard_TEST_PROMPT.json"
+            if f.name != "PromptCore.json"
         ]
 
         if not json_files:

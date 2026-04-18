@@ -1,19 +1,17 @@
 import faiss
-import numpy as np
 from sentence_transformers import SentenceTransformer
 import pickle
 import os
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Set
-import re
+from typing import List, Dict, Optional, Set
 
 
 class FAISSVectorDB:
     """FAISS vector database for role-playing RAG system, per-adventure instance"""
 
-    def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = ".../adventure_memories"):
+    def __init__(self, adventure_name: str = "vanilla_fantasy", storage_path: str = "../adventure_memories"):
         """
         Initialize a vector database for a specific adventure.
 

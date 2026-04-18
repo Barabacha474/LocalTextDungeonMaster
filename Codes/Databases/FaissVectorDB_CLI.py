@@ -1,7 +1,6 @@
-from FaissVectorDB import FAISSVectorDB
+from Codes.Databases.FaissVectorDB import FAISSVectorDB
 
 if __name__ == "__main__":
-    import argparse
     import shlex
     import sys
     from pathlib import Path

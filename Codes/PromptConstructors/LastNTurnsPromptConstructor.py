@@ -20,7 +20,7 @@ class LastNTurnsPromptConstructor(AbstractPromptConstructor):
                 > 0 → last N turns
                 < 0 → ALL turns
             special_command: optional system instruction
-            roles: filter roles (e.g. ["Player", "Narrator"])
+            roles: filter roles (e.g. ["Player", "Narrator", "PlannerDjn "])
         """
         self.special_command = special_command
         self.num_turns = num_turns

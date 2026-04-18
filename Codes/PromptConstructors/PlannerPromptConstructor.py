@@ -18,17 +18,17 @@ class PlannerPromptConstructor(AbstractPromptConstructor):
 
     def __init__(
         self,
-        planner_instructions: str,
+        system_prompt: str,
         history_turns: int = 10,
         include_setting: bool = True,
-        include_summary: bool = True,
+        include_global_summary: bool = True,
         include_relevant_info: bool = True
     ):
-        self.planner_instructions = planner_instructions
+        self.system_prompt = system_prompt
         self.history_turns = history_turns
 
         self.include_setting = include_setting
-        self.include_summary = include_summary
+        self.include_global_summary = include_global_summary
         self.include_relevant_info = include_relevant_info
 
     # =========================================================
@@ -43,6 +43,9 @@ class PlannerPromptConstructor(AbstractPromptConstructor):
 
         core_prompt = kwargs.get("core_prompt")
         rag_config = kwargs.get("rag_config")
+        use_few_shot = kwargs.get("use_few_shot_examples", False)
+
+        separator = "=" * 30
 
         parts: List[str] = []
 
@@ -50,7 +53,18 @@ class PlannerPromptConstructor(AbstractPromptConstructor):
         # ROLE + INSTRUCTIONS
         # =========================================================
         parts.append("ROLE:\nAdventure Planner")
-        parts.append(f"INSTRUCTIONS:\n{self.planner_instructions}")
+        parts.append(f"INSTRUCTIONS:\n{self.system_prompt}")
+        parts.append(separator)
+
+        # =========================================================
+        # FEW SHOT EXAMPLE (OPTIONAL)
+        # =========================================================
+
+        if use_few_shot and core_prompt:
+            example = core_prompt.get("planner_few_shot_example")
+            if example:
+                parts.append(example)
+                parts.append(separator)
 
         # =========================================================
         # SETTING
@@ -59,14 +73,16 @@ class PlannerPromptConstructor(AbstractPromptConstructor):
             setting = core_prompt.get("setting", "")
             if setting:
                 parts.append(f"SETTING:\n{setting}")
+                parts.append(separator)
 
         # =========================================================
         # GLOBAL SUMMARY
         # =========================================================
-        if self.include_summary:
+        if self.include_global_summary:
             summary = context.get_latest_global_summary()
             if summary:
                 parts.append(f"GLOBAL STORY SUMMARY:\n{summary}")
+                parts.append(separator)
 
         # =========================================================
         # RAG (CONTEXT-AWARE)
@@ -75,6 +91,7 @@ class PlannerPromptConstructor(AbstractPromptConstructor):
             rag_block = self._build_rag_block(context, rag_config)
             if rag_block:
                 parts.append(rag_block)
+                parts.append(separator)
 
         # =========================================================
         # FULL HISTORY (ALL ROLES)
@@ -87,21 +104,7 @@ class PlannerPromptConstructor(AbstractPromptConstructor):
                 for t in history
             )
             parts.append(f"RECENT HISTORY:\n{history_block}")
-
-        # =========================================================
-        # PLANNER MEMORY (ВСЕ ПЛАНЫ В ОКНЕ)
-        # =========================================================
-        planner_history = context.get_last_turns(
-            self.history_turns,
-            roles=["Planner"]
-        )
-
-        if planner_history:
-            planner_block = "\n".join(
-                f"{t['content']}"
-                for t in planner_history
-            )
-            parts.append(f"PLANNER MEMORY:\n{planner_block}")
+            parts.append(separator)
 
         # =========================================================
         # PLAYER INPUT
@@ -109,19 +112,7 @@ class PlannerPromptConstructor(AbstractPromptConstructor):
         player_input = context.get_player_input()
         if player_input:
             parts.append(f"CURRENT PLAYER ACTION:\n{player_input}")
-
-        # =========================================================
-        # OUTPUT FORMAT
-        # =========================================================
-        parts.append(
-            "PLANNER OUTPUT FORMAT:\n"
-            "- scene intent\n"
-            "- hidden events\n"
-            "- pacing\n"
-            "- tension\n"
-            "- twists\n"
-            "- constraints\n"
-        )
+            parts.append(separator)
 
         parts.append("Planner:")
 
@@ -145,7 +136,6 @@ class PlannerPromptConstructor(AbstractPromptConstructor):
         threshold = rag_config.get("threshold", 0.3)
         chunk_size = rag_config.get("chunk_size")
 
-        # 👉 используем helper из AdventureContext
         query = context.build_search_query(player_input, n_history)
 
         relevant = context.get_relevant_info(

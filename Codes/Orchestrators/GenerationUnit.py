@@ -72,7 +72,6 @@ class GenerationUnit:
         Does NOT override num_ctx if explicitly provided.
         """
 
-        # если пользователь явно задал num_ctx → не трогаем
         if "num_ctx" in generation_kwargs:
             return generation_kwargs
 
@@ -118,8 +117,7 @@ class GenerationUnit:
             print(f"Output reserve: {output_tokens}")
             print(f"Final num_ctx: {estimated_ctx}")
 
-        # вставляем в kwargs
-        generation_kwargs = dict(generation_kwargs)  # копия
+        generation_kwargs = dict(generation_kwargs)
         generation_kwargs["num_ctx"] = estimated_ctx
 
         return generation_kwargs

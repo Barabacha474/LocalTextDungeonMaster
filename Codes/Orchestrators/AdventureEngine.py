@@ -2,9 +2,9 @@ import json
 import time
 from typing import Optional, Tuple, Iterator
 
-from AdventureContext import AdventureContext
-from GenerationUnit import GenerationUnit
-from MemoryManager import MemoryManager
+from Codes.Orchestrators.AdventureContext import AdventureContext
+from Codes.Orchestrators.GenerationUnit import GenerationUnit
+from Codes.Orchestrators.MemoryManager import MemoryManager
 
 
 class AdventureEngine:
@@ -87,7 +87,14 @@ class AdventureEngine:
             "debug_prompt": False
         }
 
-        self.rag_settings = {
+        self.rag_narrator_settings = {
+            "n_history": 5,
+            "k_per_cascade": 5,
+            "number_of_cascades": 2,
+            "threshold": 0.3,
+            "chunk_size": None
+        }
+        self.rag_planner_settings = {
             "n_history": 5,
             "k_per_cascade": 5,
             "number_of_cascades": 2,
@@ -193,12 +200,22 @@ class AdventureEngine:
         opening_text = self.core_prompt.get("player_opening_text", "")
 
         def stream():
+            parts = []
+
+            if plot_start:
+                parts.append(plot_start)
+
             if opening_text:
                 yield self._event("system", "[ADVENTURE START]")
                 yield self._event("system", opening_text)
+                parts.append(opening_text)
 
-            if plot_start:
-                self.context.log_turn(0, "Narrator", plot_start)
+            result = ""
+            for part in parts:
+                result += part + "\n"
+
+            if result != "":
+                self.context.log_turn(0, "Narrator", result)
 
             yield self._event("system", "[You may now act]")
 
@@ -237,7 +254,8 @@ class AdventureEngine:
                     context=self.context,
                     prompt_kwargs={
                         "core_prompt": self.core_prompt,
-                        "rag_config": self.rag_settings
+                        "rag_config": self.rag_planner_settings,
+                        "use_few_shot_examples": self.planner_settings.get("use_few_shot_examples", False)
                     },
                     generation_kwargs=self.planner_settings
                 )
@@ -266,7 +284,8 @@ class AdventureEngine:
                     context=self.context,
                     prompt_kwargs={
                         "core_prompt": self.core_prompt,
-                        "rag_config": self.rag_settings
+                        "rag_config": self.rag_narrator_settings,
+                        "use_few_shot_examples": self.narrator_settings.get("use_few_shot_examples", False)
                     },
                     generation_kwargs=self.narrator_settings
                 )
@@ -522,7 +541,8 @@ class AdventureEngine:
         self.memory_settings.update(config.get("memory", {}))
 
         # rag
-        self.rag_settings.update(config.get("rag", {}))
+        self.rag_narrator_settings.update(config.get("rag_narrator", {}))
+        self.rag_planner_settings.update(config.get("rag_planner", {}))
 
     def export_config(self) -> dict:
         """
@@ -537,7 +557,8 @@ class AdventureEngine:
             "narrator": self.narrator_settings,
             "planner": self.planner_settings,
             "memory": self.memory_settings,
-            "rag": self.rag_settings
+            "rag_narrator": self.rag_narrator_settings,
+            "rag_planner": self.rag_planner_settings
         }
 
     def save_config(self, filepath: str = None):

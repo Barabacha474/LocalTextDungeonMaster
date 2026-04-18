@@ -1,8 +1,8 @@
 from typing import Optional
-from GenerationUnit import GenerationUnit
+from Codes.Orchestrators.GenerationUnit import GenerationUnit
 from Codes.PromptConstructors.LastNTurnsPromptConstructor import LastNTurnsPromptConstructor
 from Codes.LLMHandlers.SimpleOllamaLLM import SimpleOllamaLLM
-from AdventureContext import AdventureContext
+from Codes.Orchestrators.AdventureContext import AdventureContext
 
 
 class MemoryManager:

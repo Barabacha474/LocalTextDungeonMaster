@@ -137,7 +137,8 @@ class AdventureContext:
         k_per_cascade: int = 5,
         number_of_cascades: int = 1,
         threshold: float = 0.3,
-        chunk_size: Optional[int] = None
+        chunk_size: Optional[int] = None,
+        exclude_types: Optional[list[str]] = None
     ) -> List[Dict]:
         """
         Vector search over memory.
@@ -149,7 +150,8 @@ class AdventureContext:
             k_per_cascade=k_per_cascade,
             number_of_cascades=number_of_cascades,
             threshold=threshold,
-            chunk_size=chunk_size
+            chunk_size=chunk_size,
+            exclude_types=exclude_types
         )
 
     def get_all_memory(self) -> List[Dict]:
@@ -165,17 +167,34 @@ class AdventureContext:
         Used by narrator and planner.
         """
         docs = self.vector_db.get_all_documents()
+        best_text = None
+        best_turn = -1
+        for doc in docs:
+            meta = doc.get("metadata", {})
+            if meta.get("type") == "global_summary":
+                turn = meta.get("turn", -1)
+                if turn > best_turn:
+                    best_turn = turn
+                    best_text = doc["text"]
+        return best_text
 
-        summaries = [
-            d["text"]
-            for d in docs
-            if d.get("metadata", {}).get("type") == "global_summary"
-        ]
-
-        if summaries:
-            return summaries[-1]
-
-        return None
+    def _delete_global_summaries_covering_turn(self, turn_id: int) -> int:
+        """
+        Removes all global summaries that cover turn_id (i.e., those with turn >= turn_id).
+        Returns the number of summaries removed.
+        """
+        docs = self.vector_db.get_all_documents()
+        to_delete = []
+        for doc in docs:
+            meta = doc.get("metadata", {})
+            if meta.get("type") == "global_summary":
+                covered_turn = meta.get("turn", -1)
+                if covered_turn >= turn_id:
+                    to_delete.append(doc["id"])
+        if to_delete:
+            self.vector_db.delete(to_delete)
+            self.vector_db.save()
+        return len(to_delete)
 
     # =========================================================
     # SEARCH QUERY BUILDER (NEW)
@@ -211,7 +230,9 @@ class AdventureContext:
         self,
         text: str,
         turn_start: int,
-        turn_end: int
+        turn_end: int,
+        seed: Optional[int] = None,
+        model_name: Optional[str] = None
     ) -> int:
         label = f"Memory of turns {turn_start}-{turn_end}"
 
@@ -221,6 +242,10 @@ class AdventureContext:
             "turn_end": turn_end,
             "label": label
         }
+        if seed is not None:
+            metadata["seed"] = seed
+        if model_name is not None:
+            metadata["model name"] = model_name
 
         print(f"\n MEMORY SAVED: {text} \n")
 
@@ -270,6 +295,7 @@ class AdventureContext:
 
         if success:
             self.delete_memories_after_turn(turn_id - 1)
+            self._delete_global_summaries_covering_turn(turn_id) #CHECK IF REALLY turn_id, NOT turn_id - 1
 
         return success
 

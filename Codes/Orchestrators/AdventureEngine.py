@@ -1,6 +1,7 @@
 import json
 import time
 from typing import Optional, Tuple, Iterator
+import random
 
 from Codes.Orchestrators.AdventureContext import AdventureContext
 from Codes.Orchestrators.GenerationUnit import GenerationUnit
@@ -59,6 +60,7 @@ class AdventureEngine:
         self.narrator_settings = {
             "temperature": 0.6,
             "num_predict": 800,
+            "seed": 42,
             "auto_ctx": True,
             "ctx_margin": 1.1,
             "max_ctx": 8192,
@@ -69,6 +71,7 @@ class AdventureEngine:
         self.planner_settings = {
             "temperature": 0.5,
             "num_predict": 400,
+            "seed": 42,
             "auto_ctx": True,
             "ctx_margin": 1.1,
             "max_ctx": 4096,
@@ -79,6 +82,7 @@ class AdventureEngine:
         self.memory_settings = {
             "temperature": 0.2,
             "num_predict": 800,
+            "seed": 42,
             "num_turns": 6,
             "auto_ctx": True,
             "ctx_margin": 1.1,
@@ -229,7 +233,8 @@ class AdventureEngine:
         self,
         turn_id: int,
         run_planner: bool,
-        run_narrator: bool
+        run_narrator: bool,
+        use_random_seed: bool = False
     ) -> Tuple[Iterator[str], float]:
         """
         Universal streaming pipeline:
@@ -245,6 +250,12 @@ class AdventureEngine:
             # PLANNER
             # =========================
             has_plan = self._has_planner_in_turn(turn_id)
+
+            planner_generation_seed = self.planner_settings.get("seed")
+            narrator_generation_seed = self.narrator_settings.get("seed")
+            if use_random_seed:
+                planner_generation_seed = random.randint(1, 2**31 - 1)
+                narrator_generation_seed = random.randint(1, 2**31 - 1)
 
             if run_planner and self.planner_enabled and self.planner and not has_plan:
                 if self.show_system_messages:
@@ -268,7 +279,8 @@ class AdventureEngine:
                     if self.show_planner:
                         yield self._event("llm", token)
 
-                self.context.log_turn(turn_id, "Planner", plan_text)
+                self.context.log_turn(turn_id, role="Planner", content=plan_text,
+                                      model_name=self.planner.llm.model, seed=planner_generation_seed)
 
                 if self.show_system_messages:
                     yield self._event("system", "\n[PLANNER END]\n")
@@ -297,6 +309,9 @@ class AdventureEngine:
                     yield self._event("llm", token)
 
                 self.context.log_turn(turn_id, "Narrator", full_text)
+
+                self.context.log_turn(turn_id, role="Narrator", content=full_text,
+                                      model_name=self.narrator.llm.model, seed=narrator_generation_seed)
 
                 if self.show_system_messages:
                     yield self._event("system", "\n[NARRATOR END]\n")
@@ -366,7 +381,8 @@ class AdventureEngine:
             return self._run_generation_pipeline(
                 turn_id=turn_id,
                 run_planner=True,
-                run_narrator=False
+                run_narrator=False,
+                use_random_seed=True
             )
 
         # -----------------------------------------------------
@@ -384,7 +400,8 @@ class AdventureEngine:
             return self._run_generation_pipeline(
                 turn_id=turn_id,
                 run_planner=False,
-                run_narrator=True
+                run_narrator=True,
+                use_random_seed=True
             )
 
         # -----------------------------------------------------
@@ -459,6 +476,8 @@ class AdventureEngine:
             if not self.memory_manager:
                 return iter([])
 
+            memory_seed = self.memory_settings.get("seed")
+
             # -------------------------
             # SHORT MEMORY
             # -------------------------
@@ -486,7 +505,9 @@ class AdventureEngine:
                     self.context.save_memory(
                         text=summary,
                         turn_start=start_turn,
-                        turn_end=end_turn
+                        turn_end=end_turn,
+                        seed=memory_seed,
+                        model_name=self.memory_manager.model
                     )
 
             # -------------------------
@@ -509,7 +530,9 @@ class AdventureEngine:
                     text=global_summary,
                     metadata={
                         "type": "global_summary",
-                        "turn": turn_id
+                        "turn": turn_id,
+                        "seed": memory_seed,
+                        "model name": self.memory_manager.model
                     }
                 )
                 self.context.vector_db.save()

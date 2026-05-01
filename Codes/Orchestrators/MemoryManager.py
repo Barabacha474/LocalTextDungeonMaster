@@ -87,7 +87,6 @@ class MemoryManager:
         seed: int = 42,
         num_predict: int = 800,
         num_ctx: Optional[int] = None,
-        # 🔥 NEW
         auto_ctx: bool = False,
         ctx_margin: float = 1.1,
         max_ctx: Optional[int] = None,
@@ -132,7 +131,6 @@ class MemoryManager:
         seed: int = 42,
         num_predict: int = 1500,
         num_ctx: Optional[int] = None,
-        # 🔥 NEW
         auto_ctx: bool = False,
         ctx_margin: float = 1.1,
         max_ctx: Optional[int] = None,
@@ -157,7 +155,6 @@ class MemoryManager:
                 "num_predict": num_predict,
                 "num_ctx": ctx,
 
-                # 🔥 NEW
                 "auto_ctx": auto_ctx,
                 "ctx_margin": ctx_margin,
                 "max_ctx": max_ctx,

@@ -186,7 +186,8 @@ class NarratorPromptConstructor(AbstractPromptConstructor):
             k_per_cascade=k,
             number_of_cascades=cascades,
             threshold=threshold,
-            chunk_size=chunk_size
+            chunk_size=chunk_size,
+            exclude_types=["global_summary"]
         )
 
         if not relevant:

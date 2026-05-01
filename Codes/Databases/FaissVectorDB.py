@@ -294,7 +294,8 @@ class FAISSVectorDB:
 
     def search(self, query: str, k_per_cascade: int = 5, number_of_cascades: int = 1,
                threshold: float = 0.3, filter_metadata: Optional[Dict] = None,
-               chunk_size: Optional[int] = None, debug: bool = False) -> List[Dict]:
+               chunk_size: Optional[int] = None, debug: bool = False,
+               exclude_types: Optional[List[str]] = None) -> List[Dict]:
         """
         Search for similar documents with optional cascade expansion.
 
@@ -304,8 +305,10 @@ class FAISSVectorDB:
             number_of_cascades: Number of iterative search steps. If 1, performs a single search.
             threshold: Minimum similarity score (0.0-1.0)
             filter_metadata: Optional metadata to filter results by
+            exclude_types: types of metadata to exclude from search
             chunk_size: If provided, split long queries into chunks of this size (in words).
                        If None or 0, use the entire query as is.
+
 
         Returns:
             List of unique result dictionaries from all cascade steps,
@@ -335,12 +338,12 @@ class FAISSVectorDB:
             if chunk_size is not None and chunk_size > 0:
                 step_results = self._search_with_chunks(
                     current_query, k_per_cascade, threshold, filter_metadata,
-                    chunk_size, exclude_ids=seen_ids, debug=debug
+                    chunk_size, exclude_ids=seen_ids, debug=debug, exclude_types=exclude_types
                 )
             else:
                 step_results = self._search_single_query(
                     current_query, k_per_cascade, threshold, filter_metadata,
-                    exclude_ids=seen_ids, debug=debug
+                    exclude_ids=seen_ids, debug=debug, exclude_types=exclude_types
                 )
 
             if debug:
@@ -370,7 +373,7 @@ class FAISSVectorDB:
     def _search_single_query(self, query: str, k: int, threshold: float,
                              filter_metadata: Optional[Dict] = None,
                              exclude_ids: Optional[Set[int]] = None,
-                             debug: bool = False) -> List[Dict]:
+                             debug: bool = False, exclude_types: Optional[list[str]] = None) -> List[Dict]:
         """
         Search using a single query (original search logic).
 
@@ -379,6 +382,7 @@ class FAISSVectorDB:
             k: Number of results to return
             threshold: Minimum similarity score
             filter_metadata: Optional metadata filter
+            exclude_types: types of metadata to exclude from search
             debug: If True, print debug information
 
         Returns:
@@ -406,6 +410,10 @@ class FAISSVectorDB:
 
                     # Exclude already seen IDs
                     if exclude_ids and doc['id'] in exclude_ids:
+                        continue
+
+                    # Exclude by metadata
+                    if exclude_types and doc.get("metadata", {}).get("type") in exclude_types:
                         continue
 
                     results.append({
@@ -451,7 +459,7 @@ class FAISSVectorDB:
     def _search_with_chunks(self, query: str, k: int, threshold: float,
                             filter_metadata: Optional[Dict] = None, chunk_size: int = 200,
                             exclude_ids: Optional[Set[int]] = None,
-                            debug: bool = False) -> List[Dict]:
+                            debug: bool = False,  exclude_types: Optional[list[str]] = None) -> List[Dict]:
         """
         Search by splitting query into chunks and combining results,
         optionally excluding certain IDs.
@@ -461,6 +469,7 @@ class FAISSVectorDB:
             k: Number of results to return from this chunked search
             threshold: Minimum similarity score
             filter_metadata: Optional metadata filter
+            exclude_types: types of metadata to exclude from search
             chunk_size: Words per chunk
             exclude_ids: Set of document IDs to exclude from results
             debug: If True, print debug information
@@ -488,7 +497,7 @@ class FAISSVectorDB:
             # Get results for this chunk (request more than k to get diverse results)
             chunk_results = self._search_single_query(
                 chunk, k * 3, threshold, filter_metadata,
-                exclude_ids=exclude_ids, debug=debug
+                exclude_ids=exclude_ids, debug=debug, exclude_types=exclude_types
             )
 
             # Add unique results (avoid duplicates within this step)

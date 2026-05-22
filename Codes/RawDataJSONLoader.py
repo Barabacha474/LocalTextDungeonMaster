@@ -14,16 +14,20 @@ class UniversalAdventureLoader:
 
     BATCH_SIZE = 10000  # Batch size for Faiss insertions
 
-    def __init__(self, adventure_name: str, debug: bool = False):
+    def __init__(self, source_folder_name: str, adventure_name: str = None, debug: bool = False):
         """
         Args:
-            adventure_name: Name of the adventure (folder under SettingRawDataJSON/)
+            source_folder_name: Name of the folder under SettingRawDataJSON/ containing JSON files.
+            adventure_name: Name used for the FAISS database (if None, same as source_folder_name).
             debug: If True, print detailed progress information.
         """
+        self.source_folder_name = source_folder_name
+        if adventure_name is None:
+            adventure_name = source_folder_name
         self.adventure_name = adventure_name
         self.debug = debug
-        self.raw_root = Path("../SettingRawDataJSON") / adventure_name
-        self.db = FAISSVectorDB(adventure_name)
+        self.raw_root = Path("../SettingRawDataJSON") / source_folder_name
+        self.db = FAISSVectorDB(self.adventure_name)
 
     def run(self):
         """Main entry point: find all JSON files and insert all records."""
@@ -92,7 +96,7 @@ class UniversalAdventureLoader:
                 print(f"   📊 {rel_path}: {file_records} records, {file_inserted} inserted")
 
         print("\n" + "=" * 60)
-        print(f"✅ Load complete for adventure '{self.adventure_name}'")
+        print(f"✅ Load complete for adventure '{self.adventure_name}' (source folder: {self.source_folder_name})")
         print(f"   Total records extracted : {total_records}")
         print(f"   Successfully inserted    : {total_inserted}")
         print(f"   Failed / skipped         : {total_records - total_inserted}")
@@ -175,7 +179,8 @@ class UniversalAdventureLoader:
             # File/adventure info
             "source_file": str(source_file.relative_to(self.raw_root.parent.parent)
                                if source_file.is_absolute() else source_file),
-            "adventure": self.adventure_name,
+            "adventure": self.adventure_name,   # FAISS database name (user-facing adventure name)
+            "source_folder": self.source_folder_name,  # keep for reference
             "added_at": datetime.now().isoformat(),
         }
 
@@ -243,23 +248,31 @@ class UniversalAdventureLoader:
 
 
 def main():
-    """Command‑line interface with optional debug flag."""
+    """Command‑line interface with optional adventure name override."""
     import argparse
     parser = argparse.ArgumentParser(description="Load all JSON data into Faiss for an adventure.")
-    parser.add_argument("adventure", nargs="?", help="Name of the adventure folder")
+    parser.add_argument("source_folder", nargs="?", help="Name of the source folder (under SettingRawDataJSON/)")
+    parser.add_argument("--adventure-name", "-a", help="Name for the FAISS database (if omitted, will prompt or use source folder name)")
     parser.add_argument("--debug", "-d", action="store_true", help="Enable debug output")
     args = parser.parse_args()
 
-    adventure_name = args.adventure
-    if not adventure_name:
-        adventure_name = input("Enter adventure name: ").strip()
-        args.debug = True
-        if not adventure_name:
-            print("No adventure name provided.")
+    source_folder = args.source_folder
+    if not source_folder:
+        source_folder = input("Enter source folder name: ").strip()
+        if not source_folder:
+            print("No source folder name provided.")
             return
 
-    print(f"🚀 Loading adventure: '{adventure_name}' (debug={args.debug})")
-    loader = UniversalAdventureLoader(adventure_name, debug=args.debug)
+    # Determine adventure name
+    adventure_name = args.adventure_name
+    if adventure_name is None:
+        prompt = f"Enter adventure name for FAISS database (or press Enter to use '{source_folder}'): "
+        user_input = input(prompt).strip()
+        adventure_name = user_input if user_input else source_folder
+
+    print(f"🚀 Loading from source folder: '{source_folder}'")
+    print(f"   FAISS database name: '{adventure_name}' (debug={args.debug})")
+    loader = UniversalAdventureLoader(source_folder, adventure_name, debug=args.debug)
     loader.run()
 
 

@@ -56,8 +56,14 @@ class AdventureLogger:
                 turn_id INTEGER NOT NULL,
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
+            
                 model_name TEXT,
                 seed INTEGER,
+            
+                full_prompt TEXT,
+                ttft REAL,
+                generation_time REAL,
+            
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -79,7 +85,19 @@ class AdventureLogger:
         )
         self.conn.commit()
 
-    def write(self, turn_id: int, role: str, content: str, model_name: Optional[str] = None, seed: Optional[int] = None) -> int:
+    def write(
+            self,
+            turn_id: int,
+            role: str,
+            content: str,
+
+            model_name: Optional[str] = None,
+            seed: Optional[int] = None,
+
+            full_prompt: Optional[str] = None,
+            ttft: Optional[float] = None,
+            generation_time: Optional[float] = None
+    ) -> int:
         """
         Write a new turn to the database.
 
@@ -89,6 +107,9 @@ class AdventureLogger:
             content: Text content of the turn
             model_name: name of the model used for generation
             seed: Optional integer seed used for generation
+            generation_time: time that took generation of all tokens after first one
+            ttft: time to first token since command for generation
+            full_prompt: prompt that were given to model
 
         Returns:
             int: The new logical turn_id (sequential)
@@ -98,8 +119,18 @@ class AdventureLogger:
         #     raise ValueError(f"Unknown role: {role}")
 
         self.cursor.execute(
-            "INSERT INTO turns (turn_id, role, content, model_name, seed) VALUES (?, ?, ?, ?, ?)",
-            (turn_id, role, content, model_name, seed)
+            """INSERT INTO turns (
+                turn_id,
+                role,
+                content,
+                model_name,
+                seed,
+                full_prompt,
+                ttft,
+                generation_time
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (turn_id, role, content, model_name, seed,full_prompt, ttft, generation_time)
         )
         self.conn.commit()
 

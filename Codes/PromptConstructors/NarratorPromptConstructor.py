@@ -124,7 +124,9 @@ class NarratorPromptConstructor(AbstractPromptConstructor):
 
             if planner_turn:
                 last_plan = planner_turn[-1]["content"]
-                parts.append(f"[PLANNER PLAN]\n{last_plan}")
+                parts.append(
+                    f"""Below is plan for your current generation. 
+                    Use it as a guideline and source of information on current adventure generation\n{last_plan}""")
                 parts.append(separator)
 
         # =========================================================

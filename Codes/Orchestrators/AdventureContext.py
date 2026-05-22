@@ -75,19 +75,27 @@ class AdventureContext:
     # =========================================================
 
     def log_turn(
-        self,
-        turn_id: int,
-        role: str,
-        content: str,
-        model_name: Optional[str] = None,
-        seed: Optional[int] = None
+            self,
+            turn_id: int,
+            role: str,
+            content: str,
+
+            model_name: Optional[str] = None,
+            seed: Optional[int] = None,
+
+            full_prompt: Optional[str] = None,
+            ttft: Optional[float] = None,
+            generation_time: Optional[float] = None
     ):
         return self.sql_db.write(
             turn_id=turn_id,
             role=role,
             content=content,
             model_name=model_name,
-            seed=seed
+            seed=seed,
+            full_prompt=full_prompt,
+            ttft=ttft,
+            generation_time=generation_time
         )
 
     # =========================================================
@@ -138,7 +146,8 @@ class AdventureContext:
         number_of_cascades: int = 1,
         threshold: float = 0.3,
         chunk_size: Optional[int] = None,
-        exclude_types: Optional[list[str]] = None
+        exclude_types: Optional[list[str]] = None,
+        debug: Optional[bool] = False
     ) -> List[Dict]:
         """
         Vector search over memory.
@@ -151,7 +160,8 @@ class AdventureContext:
             number_of_cascades=number_of_cascades,
             threshold=threshold,
             chunk_size=chunk_size,
-            exclude_types=exclude_types
+            exclude_types=exclude_types,
+            debug=debug
         )
 
     def get_all_memory(self) -> List[Dict]:

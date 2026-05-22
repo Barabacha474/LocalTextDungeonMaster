@@ -19,18 +19,22 @@ from Codes.Orchestrators.MemoryManager import MemoryManager
 # CONFIG
 # =========================================================
 
-ADVENTURE_NAME = "vanilla_fantasy"
-PROMPT_CORE_JSON_PATH: str = "../SettingRawDataJSON/vanilla_fantasy/PromptCore.json"
+ADVENTURE_NAME = "HarryPotter_test3"
+PROMPT_CORE_JSON_PATH: str = "../SettingRawDataJSON/HarryPotter/PromptCore.json"
 ENGINE_CONFIG_PATH: str = "../Configs/AdventureEngineConfig.json"
 USE_ENGINE_CONFIG_JSON: bool = True
 
-NARRATOR_MODEL_NAME: str = "cogito:8b-v1-preview-llama-q4_K_M"
-PLANNER_MODEL_NAME: str = "cogito:8b-v1-preview-llama-q4_K_M"
-SUMMARIZER_MODEL_NAME: str = "cogito:8b-v1-preview-llama-q4_K_M"
+# NARRATOR_MODEL_NAME: str = "cogito:8b-v1-preview-llama-q4_K_M"
+# PLANNER_MODEL_NAME: str = "cogito:8b-v1-preview-llama-q4_K_M"
+# SUMMARIZER_MODEL_NAME: str = "cogito:8b-v1-preview-llama-q4_K_M"
 
-# NARRATOR_MODEL_NAME: str = "qwen3:14b"
-# PLANNER_MODEL_NAME: str = "qwen3:14b"
-# SUMMARIZER_MODEL_NAME: str = "qwen3:14b"
+NARRATOR_MODEL_NAME: str = "Tohur/natsumura-storytelling-rp-llama-3.1:latest"
+PLANNER_MODEL_NAME: str = "Tohur/natsumura-storytelling-rp-llama-3.1:latest"
+SUMMARIZER_MODEL_NAME: str = "Tohur/natsumura-storytelling-rp-llama-3.1:latest"
+
+# NARRATOR_MODEL_NAME: str = "mistral-small:22b-instruct-2409-q3_K_S"
+# PLANNER_MODEL_NAME: str = "mistral-small:22b-instruct-2409-q3_K_S"
+# SUMMARIZER_MODEL_NAME: str = "mistral-small:22b-instruct-2409-q3_K_S"
 
 MEMORY_INTERVAL: int = 4
 GLOBAL_SUMMARY_INTERVAL: int = 12
@@ -64,8 +68,8 @@ def build_engine() -> AdventureEngine:
     # =========================
     # DATABASES
     # =========================
-    sql_db: AdventureLogger = AdventureLogger(adventure_name="vanilla_fantasy")
-    vector_db: FAISSVectorDB = FAISSVectorDB(adventure_name="vanilla_fantasy")
+    sql_db: AdventureLogger = AdventureLogger(adventure_name=ADVENTURE_NAME)
+    vector_db: FAISSVectorDB = FAISSVectorDB(adventure_name=ADVENTURE_NAME)
 
     context: AdventureContext = AdventureContext(sql_db, vector_db)
 
@@ -73,7 +77,10 @@ def build_engine() -> AdventureEngine:
     # NARRATOR
     # =========================
     narrator_prompt: NarratorPromptConstructor = NarratorPromptConstructor(
-        system_prompt=narrator_system_prompt
+        system_prompt=narrator_system_prompt,
+        include_relevant_info=True,
+        include_global_summary=True,
+        include_setting=True
     )
 
     narrator_llm: SimpleOllamaLLM = SimpleOllamaLLM(
@@ -90,7 +97,10 @@ def build_engine() -> AdventureEngine:
     # PLANNER
     # =========================
     planner_prompt: PlannerPromptConstructor = PlannerPromptConstructor(
-        system_prompt=planner_system_prompt
+        system_prompt=planner_system_prompt,
+        include_relevant_info=True,
+        include_global_summary=True,
+        include_setting=True
     )
 
     planner_llm: SimpleOllamaLLM = SimpleOllamaLLM(

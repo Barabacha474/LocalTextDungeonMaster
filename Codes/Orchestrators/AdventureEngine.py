@@ -133,8 +133,8 @@ class AdventureEngine:
         undo narrator
             Delete only Narrator output of last turn
 
-        regenerate plan
-            Regenerate planner output for current turn
+        regenerate plan and narrator
+            Regenerate planner and narrator output for current turn
 
         regenerate
             Regenerate narrator output using existing plan
@@ -261,6 +261,9 @@ class AdventureEngine:
                 if self.show_system_messages:
                     yield self._event("system", "\n[PLANNER START]\n")
 
+                planner_started_at = time.time()
+                planner_first_token_at = None
+
                 planner_stream = self.planner.generate_stream(
                     context=self.context,
                     prompt_kwargs={
@@ -274,13 +277,36 @@ class AdventureEngine:
                 plan_text = ""
 
                 for token in planner_stream:
+
+                    if planner_first_token_at is None and token.strip():
+                        planner_first_token_at = time.time()
+
                     plan_text += token
 
                     if self.show_planner:
                         yield self._event("llm", token)
 
-                self.context.log_turn(turn_id, role="Planner", content=plan_text,
-                                      model_name=self.planner.llm.model, seed=planner_generation_seed)
+                planner_finished_at = time.time()
+
+                planner_ttft = None
+                planner_generation_time = None
+
+                if planner_first_token_at is not None:
+                    planner_ttft = planner_first_token_at - planner_started_at
+                    planner_generation_time = planner_finished_at - planner_first_token_at
+
+                self.context.log_turn(
+                    turn_id,
+                    role="Planner",
+                    content=plan_text,
+
+                    model_name=self.planner.llm.model,
+                    seed=planner_generation_seed,
+
+                    full_prompt=self.planner.get_last_prompt(),
+                    ttft=planner_ttft,
+                    generation_time=planner_generation_time
+                )
 
                 if self.show_system_messages:
                     yield self._event("system", "\n[PLANNER END]\n")
@@ -291,6 +317,9 @@ class AdventureEngine:
             if run_narrator:
                 if self.show_system_messages:
                     yield self._event("system", "\n[NARRATOR START]\n")
+
+                narrator_started_at = time.time()
+                narrator_first_token_at = None
 
                 narrator_stream = self.narrator.generate_stream(
                     context=self.context,
@@ -305,13 +334,33 @@ class AdventureEngine:
                 full_text = ""
 
                 for token in narrator_stream:
+                    if narrator_first_token_at is None and token.strip():
+                        narrator_first_token_at = time.time()
+
                     full_text += token
                     yield self._event("llm", token)
 
-                self.context.log_turn(turn_id, "Narrator", full_text)
+                narrator_finished_at = time.time()
 
-                self.context.log_turn(turn_id, role="Narrator", content=full_text,
-                                      model_name=self.narrator.llm.model, seed=narrator_generation_seed)
+                narrator_ttft = None
+                narrator_generation_time = None
+
+                if narrator_first_token_at is not None:
+                    narrator_ttft = narrator_first_token_at - narrator_started_at
+                    narrator_generation_time = narrator_finished_at - narrator_first_token_at
+
+                self.context.log_turn(
+                    turn_id,
+                    role="Narrator",
+                    content=full_text,
+
+                    model_name=self.narrator.llm.model,
+                    seed=narrator_generation_seed,
+
+                    full_prompt=self.narrator.get_last_prompt(),
+                    ttft=narrator_ttft,
+                    generation_time=narrator_generation_time
+                )
 
                 if self.show_system_messages:
                     yield self._event("system", "\n[NARRATOR END]\n")
@@ -367,9 +416,9 @@ class AdventureEngine:
             return self._single_stream("[No narrator to remove]")
 
         # -----------------------------------------------------
-        # REGENERATE PLAN
+        # REGENERATE PLAN AND narrator
         # -----------------------------------------------------
-        if cmd == "regenerate plan":
+        if cmd == "regenerate plan and narrator":
             last = self.context.get_latest_turn()
             if not last:
                 return self._single_stream("[Nothing to regenerate]")
@@ -381,7 +430,7 @@ class AdventureEngine:
             return self._run_generation_pipeline(
                 turn_id=turn_id,
                 run_planner=True,
-                run_narrator=False,
+                run_narrator=True,
                 use_random_seed=True
             )
 

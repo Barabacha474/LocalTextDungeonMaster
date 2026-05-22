@@ -308,7 +308,7 @@ class FAISSVectorDB:
             exclude_types: types of metadata to exclude from search
             chunk_size: If provided, split long queries into chunks of this size (in words).
                        If None or 0, use the entire query as is.
-
+            debug: bool param to show debug if true
 
         Returns:
             List of unique result dictionaries from all cascade steps,
